@@ -1,0 +1,6 @@
+node_modules/
+.mypy_cache/
+.tox/
+
+# useless files from the extension
+/language-server/images/

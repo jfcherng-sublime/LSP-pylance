@@ -1,0 +1,10 @@
+[
+    {
+        "caption": "Preferences: LSP-pylance Settings",
+        "command": "edit_settings",
+        "args": {
+            "base_file": "${packages}/LSP-pylance/LSP-pylance.sublime-settings",
+            "default": "// Settings in here override those in \"LSP-pylance/LSP-pylance.sublime-settings\"\n\n{\n\t$0\n}\n",
+        },
+    },
+]
