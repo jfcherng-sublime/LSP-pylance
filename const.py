@@ -2,7 +2,7 @@ import sublime
 
 
 # @see https://marketplace.visualstudio.com/items?itemName=ms-python.vscode-pylance
-SERVER_VERSION = "2020.8.0"
+SERVER_VERSION = "2020.8.1"
 
 PLUGIN_NAME = "LSP-pylance"
 SETTINGS_FILENAME = "{}.sublime-settings".format(PLUGIN_NAME)
