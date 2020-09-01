@@ -1,5 +1,4 @@
 import os
-import shutil
 import sublime
 
 from functools import lru_cache
