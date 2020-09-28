@@ -5,6 +5,9 @@
 	"languages": [
 		{
 			"languageId": "python",
+			// ST3
+			"scopes": ["source.python"],
+			"syntaxes": ["Packages/Python/Python.sublime-syntax"],
 		},
 	],
 	// @see https://github.com/microsoft/pyright/blob/master/docs/configuration.md
@@ -30,9 +33,15 @@
 		// "openFilesOnly" or "workspace"
 		"python.analysis.diagnosticMode": "openFilesOnly",
 		// Allows a user to override the severity levels for individual diagnostics.
+		// @see https://github.com/microsoft/pyright/blob/master/docs/configuration.md#type-check-diagnostics-settings
 		"python.analysis.diagnosticSeverityOverrides": {
-			// "reportUnboundVariable": "information",
 			// "reportImplicitStringConcatenation": "warning",
+			// "reportUnboundVariable": "warning",
+			// "reportDuplicateImport ": "warning",
+			// "reportUnusedClass": "information",
+			// "reportUnusedFunction": "information",
+			// "reportUnusedImport": "information",
+			// "reportUnusedVariable": "information",
 		},
 		// Specifies the level of logging for the Output panel
 		"python.analysis.logLevel": "info",
