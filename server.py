@@ -55,4 +55,4 @@ def get_server_bin_path() -> str:
     @return The LSP server binary path.
     """
 
-    return os.path.join(get_server_dir(), "extension", "server", "server.bundle.js")
+    return os.path.join(get_server_dir(), "extension", "dist", "server.bundle.js")
