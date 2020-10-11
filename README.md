@@ -2,6 +2,8 @@
 
 Python support for Sublime's LSP plugin provided through [Pylance](https://marketplace.visualstudio.com/items?itemName=ms-python.vscode-pylance). You may be interested in [LSP-pyright](https://github.com/sublimelsp/LSP-pyright).
 
+Actually, I don't know what `Pylance` has features that are not provided by [Pyright](https://github.com/microsoft/pyright) in other editors.
+
 ## Disclaimer
 
 This repository is more or less a proof of concept.
