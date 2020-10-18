@@ -81,6 +81,7 @@ class VscodeMarketplaceClientHandler(LanguageHandler):
                 cls.extension_item_name,
                 cls.extension_version,
                 cls.server_binary_path,
+                cls.install_in_cache(),
             )
         cls.__server.setup()
 
@@ -92,6 +93,10 @@ class VscodeMarketplaceClientHandler(LanguageHandler):
     @property
     def name(self) -> str:
         return self.package_name.lower()  # type: ignore
+
+    @classmethod
+    def install_in_cache(cls) -> bool:
+        return False
 
     @classmethod
     def additional_variables(cls) -> Optional[Dict[str, str]]:
