@@ -77,7 +77,7 @@ class LspPylancePlugin(AbstractPlugin):
 
         server_dir = get_server_dir()
         download_url = get_server_download_url(SERVER_VERSION, ARCH, PLATFORM)
-        tarball_path = os.path.join(server_dir, "ms-python.vscode-pylance-{}.vsix".format(SERVER_VERSION))
+        tarball_path = os.path.join(server_dir, "extension-{}.vsix".format(SERVER_VERSION))
 
         # download the LSP server tarball
         os.makedirs(os.path.dirname(tarball_path), exist_ok=True)
