@@ -35,9 +35,10 @@
 		// Allows a user to override the severity levels for individual diagnostics.
 		// @see https://github.com/microsoft/pyright/blob/master/docs/configuration.md#type-check-diagnostics-settings
 		"python.analysis.diagnosticSeverityOverrides": {
+			// "reportDuplicateImport": "warning",
 			// "reportImplicitStringConcatenation": "warning",
+			// "reportImportCycles": "warning",
 			// "reportUnboundVariable": "warning",
-			// "reportDuplicateImport ": "warning",
 			// "reportUnusedClass": "information",
 			// "reportUnusedFunction": "information",
 			// "reportUnusedImport": "information",
