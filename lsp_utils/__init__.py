@@ -11,6 +11,6 @@ else:
     from .vscode_marketplace_client_handler import VscodeMarketplaceClientHandler
 
 __all__ = [
-    'VscodeMarketplaceClientHandler',
-    'ServerVscodeMarketplaceResource',
+    "VscodeMarketplaceClientHandler",
+    "ServerVscodeMarketplaceResource",
 ]

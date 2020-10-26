@@ -114,9 +114,7 @@ class VscodeMarketplaceClientHandler(LanguageHandler):
 
         if not configuration["command"]:
             configuration["command"] = (
-                (["node"] if self.execute_with_node else [])
-                + [self.__server.binary_path]
-                + self.get_binary_arguments()
+                (["node"] if self.execute_with_node else []) + [self.__server.binary_path] + self.get_binary_arguments()
             )
 
         self.on_client_configuration_ready(configuration)
