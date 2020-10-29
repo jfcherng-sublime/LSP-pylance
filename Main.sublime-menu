@@ -17,11 +17,38 @@
                 "children": [
                   {
                     "caption": "LSP-pylance",
-                    "command": "edit_settings",
-                    "args": {
-                      "base_file": "${packages}/LSP-pylance/LSP-pylance.sublime-settings",
-                      "default": "// Settings in here override those in \"LSP-pylance/LSP-pylance.sublime-settings\"\n\n{\n\t$0\n}\n",
-                    },
+                    "children": [
+                      {
+                        "caption": "Settings",
+                        "command": "edit_settings",
+                        "args": {
+                          "base_file": "${packages}/LSP-pylance/LSP-pylance.sublime-settings",
+                          "default": "// Settings in here override those in \"LSP-pylance/LSP-pylance.sublime-settings\"\n\n{\n\t$0\n}\n",
+                        },
+                      },
+                      {
+                        "caption": "-",
+                      },
+                      {
+                        "caption": "Pylance",
+                        "children": [
+                          {
+                            "caption": "Homepage",
+                            "command": "open_url",
+                            "args": {
+                              "url": "https://marketplace.visualstudio.com/items?itemName=ms-python.vscode-pylance",
+                            },
+                          },
+                          {
+                            "caption": "Changelog",
+                            "command": "open_url",
+                            "args": {
+                              "url": "https://marketplace.visualstudio.com/items/ms-python.vscode-pylance/changelog",
+                            },
+                          },
+                        ],
+                      },
+                    ],
                   },
                 ],
               },
