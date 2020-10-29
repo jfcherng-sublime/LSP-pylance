@@ -1,3 +1,4 @@
+import json
 import os
 import sublime
 
@@ -11,9 +12,23 @@ class LspPylancePlugin(VscodeMarketplaceClientHandler):
 
     # @see https://marketplace.visualstudio.com/items?itemName=ms-python.vscode-pylance
     extension_item_name = "ms-python.vscode-pylance"
-    extension_version = "2020.10.2"
+    extension_version = "2020.10.3"
     server_binary_path = os.path.join("extension", "dist", "server.bundle.js")
     execute_with_node = True
+
+    @classmethod
+    def on_client_configuration_ready(cls, configuration: Dict) -> None:
+        configuration["env"].update(
+            {
+                "ELECTRON_RUN_AS_NODE": "1",
+                "VSCODE_NLS_CONFIG": json.dumps(
+                    {
+                        "locale": "en-us",
+                        "availableLanguages": {},
+                    }
+                ),
+            }
+        )
 
     @classmethod
     def additional_variables(cls) -> Optional[Dict[str, str]]:
