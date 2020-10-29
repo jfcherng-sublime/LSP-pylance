@@ -20,10 +20,11 @@ Microsoft may have telemetry so they will know if people are using it from other
 
 ## Installation
 
-1. This plugin is not published on the official Package Control (and probably never will be because of Pylance's license).
-   To install, add a custom repository for Package Control with steps described [here](https://github.com/jfcherng-sublime/ST-my-package-control/blob/master/README.md#usage).
-1. Install [LSP](https://packagecontrol.io/packages/LSP) and `LSP-pylance` via Package Control.
-1. Restart Sublime.
+This package is not published anywhere.
+
+- Download (or clone) source codes from GitHub.
+- Manually install it to `Packages/LSP-pylance`.
+- Restart Sublime Text.
 
 ## Configuration
 
