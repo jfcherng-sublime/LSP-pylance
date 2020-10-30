@@ -1,6 +1,6 @@
+import sublime
 import json
 import os
-import sublime
 
 from LSP.plugin.core.typing import Any, Dict, List, Optional, Tuple
 
@@ -16,6 +16,20 @@ class LspPylancePlugin(VscodeMarketplaceClientHandler):
     extension_version = "2020.10.3"
     server_binary_path = os.path.join("extension", "dist", "server.bundle.js")
     execute_with_node = True
+
+    # commands provided by the server (useless at this moment)
+    supported_commands = [
+        "pyright.addoptionalforparam",
+        "pyright.createtypestub",
+        "pyright.organizeimports",
+        "python.addImport",
+        "python.addOptionalForParam",
+        "python.createTypeStub",
+        "python.intellicode.completionItemSelected",
+        "python.intellicode.loadLanguageServerExtension",
+        "python.orderImports",
+        "python.removeUnusedImport",
+    ]
 
     @classmethod
     def on_client_configuration_ready(cls, configuration: Dict[str, Any]) -> None:
