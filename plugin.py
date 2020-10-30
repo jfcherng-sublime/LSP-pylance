@@ -2,9 +2,10 @@ import json
 import os
 import sublime
 
-from LSP.plugin.core.typing import Any, Dict, Optional, Tuple
+from LSP.plugin.core.typing import Any, Dict, List, Optional, Tuple
 
-from .my_lsp_utils import VscodeMarketplaceClientHandler
+from .my_lsp_utils import ApiWrapper, VscodeMarketplaceClientHandler
+from .utils import dotted_get
 
 
 class LspPylancePlugin(VscodeMarketplaceClientHandler):
@@ -46,3 +47,40 @@ class LspPylancePlugin(VscodeMarketplaceClientHandler):
     @classmethod
     def minimum_node_version(cls) -> Tuple[int, int, int]:
         return (12, 0, 0)
+
+    def on_ready(self, api: ApiWrapper) -> None:
+        api.on_notification("telemetry/event", lambda params: self._handle_telemetry(params))
+
+    def _handle_telemetry(self, params: Dict[str, Any]) -> None:
+        event_name = dotted_get(params, "EventName", "")
+        measurements = dotted_get(params, "Measurements", {})
+
+        if event_name == "language_server/analysis_complete":
+            extras = []  # type: List[str]
+
+            if dotted_get(measurements, "isFirstRun", 0):
+                extras.append("first run")
+
+            return self._status_msg(
+                "Analysis {file_counts} files completed in {time_s:.3f} seconds. {extra}".format(
+                    file_counts="{numFilesAnalyzed}/{numFilesInProgram}".format_map(measurements),
+                    time_s=dotted_get(measurements, "elapsedMs", 0) / 1000,
+                    extra="({})".format(",".join(extras)) if extras else "",
+                )
+            )
+
+    @classmethod
+    def _plugin_msg(cls, msg: str) -> str:
+        return "{}: {}".format(cls.package_name, msg)
+
+    @classmethod
+    def _console_msg(cls, msg: str) -> None:
+        print(cls._plugin_msg(msg))
+
+    @classmethod
+    def _error_msg(cls, msg: str) -> None:
+        sublime.error_message(cls._plugin_msg(msg))
+
+    @classmethod
+    def _status_msg(cls, msg: str) -> None:
+        sublime.status_message(cls._plugin_msg(msg))
