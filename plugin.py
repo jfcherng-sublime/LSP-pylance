@@ -4,7 +4,7 @@ import sublime
 
 from LSP.plugin.core.typing import Any, Dict, Optional, Tuple
 
-from .lsp_utils import VscodeMarketplaceClientHandler
+from .my_lsp_utils import VscodeMarketplaceClientHandler
 
 
 class LspPylancePlugin(VscodeMarketplaceClientHandler):
