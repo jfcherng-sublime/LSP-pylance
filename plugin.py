@@ -1,5 +1,4 @@
 import sublime
-import json
 import os
 
 from LSP.plugin.core.typing import Any, Dict, List, Optional, Tuple
@@ -30,21 +29,6 @@ class LspPylancePlugin(VscodeMarketplaceClientHandler):
         "python.orderImports",
         "python.removeUnusedImport",
     ]
-
-    @classmethod
-    def on_client_configuration_ready(cls, configuration: Dict[str, Any]) -> None:
-        # add necessary env variables in order to use Pylance as of 2020.10.3
-        configuration["env"].update(
-            {
-                "ELECTRON_RUN_AS_NODE": "1",
-                "VSCODE_NLS_CONFIG": json.dumps(
-                    {
-                        "locale": "en-us",
-                        "availableLanguages": {},
-                    }
-                ),
-            }
-        )
 
     @classmethod
     def additional_variables(cls) -> Optional[Dict[str, str]]:
