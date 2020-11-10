@@ -177,7 +177,7 @@ class VscodeMarketplaceClientHandler(AbstractPlugin):
         return False
 
     @classmethod
-    def on_client_configuration_ready(cls, configuration: Dict) -> None:
+    def on_client_configuration_ready(cls, configuration: Dict[str, Any]) -> None:
         """
         Called with default configuration object that contains merged default and user settings.
 
