@@ -1,7 +1,7 @@
 import sublime
 import os
 
-from LSP.plugin.core.typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from .my_lsp_utils import ApiWrapper, VscodeMarketplaceClientHandler
 from .utils import dotted_get
