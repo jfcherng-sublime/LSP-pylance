@@ -5,7 +5,7 @@ from LSP.plugin.core.protocol import Notification
 from LSP.plugin.core.protocol import Request
 from LSP.plugin.core.protocol import Response
 from LSP.plugin.core.settings import ClientConfig, read_client_config
-from LSP.plugin.core.typing import Any, Callable, Dict, List, Optional, Tuple
+from LSP.plugin.core.typing import Any, Callable, Dict, List, Optional
 import shutil
 import sublime
 
@@ -52,11 +52,11 @@ class ApiWrapper(ApiWrapperInterface):
 
 
 class VscodeMarketplaceClientHandler(LanguageHandler):
-    package_name = ""  # type: str
-    extension_item_name = ""  # type: str
-    extension_version = ""  # type: str
-    server_binary_path = ""  # type: str
-    execute_with_node = False  # type: bool
+    package_name = ""
+    extension_uid = ""
+    extension_version = ""
+    server_binary_path = ""
+    execute_with_node = False
     # Internal
     __server = None  # type: Optional[ServerVscodeMarketplaceResource]
 
@@ -72,13 +72,13 @@ class VscodeMarketplaceClientHandler(LanguageHandler):
     @classmethod
     def setup(cls) -> None:
         assert cls.package_name
-        assert cls.extension_item_name
+        assert cls.extension_uid
         assert cls.extension_version
         assert cls.server_binary_path
         if not cls.__server:
             cls.__server = ServerVscodeMarketplaceResource(
                 cls.package_name,
-                cls.extension_item_name,
+                cls.extension_uid,
                 cls.extension_version,
                 cls.server_binary_path,
                 cls.install_in_cache(),
@@ -118,8 +118,7 @@ class VscodeMarketplaceClientHandler(LanguageHandler):
             )
 
         self.on_client_configuration_ready(configuration)
-        base_settings_path = "Packages/{}/{}".format(self.package_name, self.settings_filename)
-        return read_client_config(self.name, configuration, base_settings_path)
+        return read_client_config(self.name, configuration)
 
     @classmethod
     def get_binary_arguments(cls) -> List[str]:
@@ -161,7 +160,7 @@ class VscodeMarketplaceClientHandler(LanguageHandler):
 
         Returns True if settings were migrated.
         """
-        client = settings.get("client")  # type: Dict
+        client = settings.get("client", {})  # type: Dict[str, Any]
         if client:
             settings.erase("client")
             # Migrate old keys

@@ -20,15 +20,15 @@ def log_and_show_message(msg, additional_logs: str = None, show_in_status: bool 
         sublime.active_window().status_message(msg)
 
 
-class ServerVscodeMarketplaceResource(object):
+class ServerVscodeMarketplaceResource:
     """Global object providing paths to server resources.
     Also handles the installing and updating of the server in cache.
 
     setup() needs to be called during (or after) plugin_loaded() for paths to be valid.
 
     For example, for https://marketplace.visualstudio.com/items?itemName=ms-python.vscode-pylance
-        - extension_item_name is "ms-python.vscode-pylance"
-        - extension_version is like "2020.10.1"
+        - extension_uid = "ms-python.vscode-pylance"
+        - extension_version = "2020.10.1"
     """
 
     extension_download_pattern = "https://marketplace.visualstudio.com/_apis/public/gallery/publishers/{vendor}/vsextensions/{name}/{version}/vspackage"
@@ -36,7 +36,7 @@ class ServerVscodeMarketplaceResource(object):
     def __init__(
         self,
         package_name: str,
-        extension_item_name: str,
+        extension_uid: str,
         extension_version: str,
         server_binary_path: str,
         install_in_cache: bool,
@@ -44,19 +44,13 @@ class ServerVscodeMarketplaceResource(object):
         self._initialized = False
         self._is_ready = False
         self._package_name = package_name
-        self._extension_item_name = extension_item_name
+        self._extension_uid = extension_uid
         self._extension_version = extension_version
         self._binary_path = server_binary_path
         self._install_in_cache = install_in_cache
         self._package_cache_path = ""
-        self._activity_indicator = None
 
-        if (
-            not self._package_name
-            or not self._extension_item_name
-            or not self._extension_version
-            or not self._binary_path
-        ):
+        if not (self._package_name and self._extension_uid and self._extension_version and self._binary_path):
             raise Exception("ServerVscodeMarketplaceResource could not initialize due to wrong input")
 
     @property
@@ -79,7 +73,7 @@ class ServerVscodeMarketplaceResource(object):
         self._package_cache_path = os.path.join(
             sublime.cache_path() if self._install_in_cache else get_storage_path(),
             self._package_name,
-            "{}~{}".format(self._extension_item_name, self._extension_version),
+            "{}~{}".format(self._extension_uid, self._extension_version),
         )
 
         if not os.path.isfile(self.binary_path):
@@ -94,7 +88,7 @@ class ServerVscodeMarketplaceResource(object):
 
     def _download_extension(self) -> None:
         vsix_path = os.path.join(self._package_cache_path, "extension.vsix")
-        extension_vendor, extension_name = self._extension_item_name.split(".")
+        extension_vendor, extension_name = self._extension_uid.split(".")[:2]
 
         response = urllib.request.urlopen(
             self.extension_download_pattern.format(
@@ -115,19 +109,13 @@ class ServerVscodeMarketplaceResource(object):
 
     def _on_install_success(self, _: str) -> None:
         self._is_ready = True
-        self._stop_indicator()
         log_and_show_message("{}: Server installed. Sublime Text restart might be required.".format(self._package_name))
 
     def _on_error(self, error: str) -> None:
-        self._stop_indicator()
         log_and_show_message("{}: Error:".format(self._package_name), error)
 
-    def _stop_indicator(self) -> None:
-        if self._activity_indicator:
-            self._activity_indicator.stop()
-            self._activity_indicator = None
-
-    def _decompress_vsix(self, file: str, dst_dir: Optional[str] = None) -> None:
+    @staticmethod
+    def _decompress_vsix(file: str, dst_dir: Optional[str] = None) -> None:
         """
         @brief Decompress the .vsix tarball.
 
