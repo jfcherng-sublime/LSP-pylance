@@ -2,8 +2,9 @@ import os
 import shutil
 import sublime
 import sublime_lib
+import sys
 
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Tuple
 
 from .my_lsp_utils import ApiWrapper, VscodeMarketplaceClientHandler
 from .utils import dotted_get, os_real_abs_join
@@ -55,24 +56,40 @@ class LspPylancePlugin(VscodeMarketplaceClientHandler):
             sublime_lib.ResourcePath(resource_dir).copytree(lsp_resource_dir, exist_ok=True)  # type: ignore
 
     @classmethod
-    def additional_variables(cls) -> Optional[Dict[str, str]]:
-        variables = super().additional_variables() or {}
-        variables.update(
-            {
-                # handy for ST plugin dev
-                "lsp_resources_dir": os_real_abs_join(variables["package_cache_path"], "..", "_resources"),
-                "sublime_py_files_dir": os.path.dirname(sublime.__file__),
-            }
-        )
-
-        return variables
-
-    @classmethod
     def minimum_node_version(cls) -> Tuple[int, int, int]:
         return (12, 0, 0)
 
+    @classmethod
+    def on_settings_read(cls, settings: sublime.Settings) -> bool:
+        super().on_settings_read(settings)
+
+        if settings.get("dev_environment") == "sublime_text":
+            server_settings = settings.get("settings", {})  # type: Dict[str, Any]
+
+            # add package dependencies into "python.analysis.extraPaths"
+            extraPaths = server_settings.get("python.analysis.extraPaths", [])  # type: List[str]
+            extraPaths.append("$package_cache_path/../_resources/typings")
+            extraPaths.extend(cls.find_package_dependency_dirs())
+            server_settings["python.analysis.extraPaths"] = extraPaths
+
+            settings.set("settings", server_settings)
+
+        return False
+
     def on_ready(self, api: ApiWrapper) -> None:
         api.on_notification("telemetry/event", lambda params: self._handle_telemetry(params))
+
+    @staticmethod
+    def find_package_dependency_dirs() -> List[str]:
+        dep_dirs = sys.path.copy()
+
+        # move the "Packages/" to the last
+        # @see https://github.com/sublimelsp/LSP-pyright/pull/26#discussion_r520747708
+        packages_path = sublime.packages_path()
+        dep_dirs.remove(packages_path)
+        dep_dirs.append(packages_path)
+
+        return [path for path in dep_dirs if os.path.isdir(path)]
 
     def _handle_telemetry(self, params: Dict[str, Any]) -> None:
         event_name = dotted_get(params, "EventName", "")

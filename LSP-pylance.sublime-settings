@@ -41,10 +41,6 @@
 			// virtual env
 			"$folder/.venv/Lib/site-packages",
 			"$folder/venv/Lib/site-packages",
-			// ST plugin development
-			"$lsp_resources_dir/typings",
-			"$sublime_py_files_dir",
-			"$packages",
 		],
 		// Path to directory containing custom type stub files.
 		"python.analysis.stubPath": "./typings",
@@ -80,7 +76,10 @@
 		// Path to folder with a list of Virtual Environments.
 		"python.venvPath": "",
 	},
-	//////////////////////
-	// non-LSP settings //
-	//////////////////////
+	// Use a predefined setup from this plugin, valid values are:
+	// - "": An empty string will does nothing.
+	// - "sublime_text": Suitable for people who are developing ST plugins.
+	//                  `sys.path` from the plugin_host will be added into "python.analysis.extraPaths"
+	//                   so that ST package dependencies can be resolved by the LSP server.
+	"dev_environment": "",
 }
