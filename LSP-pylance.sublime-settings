@@ -83,6 +83,4 @@
 	//////////////////////
 	// non-LSP settings //
 	//////////////////////
-	// If you have a problem connecting to the default one, you may change the URL to a mirrored one.
-	"lsp_server_download_url": "https://marketplace.visualstudio.com/_apis/public/gallery/publishers/ms-python/vsextensions/vscode-pylance/{version}/vspackage",
 }
