@@ -3,6 +3,7 @@ import gzip
 import os
 import shutil
 import sublime
+import urllib.error
 import urllib.request
 import zipfile
 
@@ -90,17 +91,27 @@ class ServerVscodeMarketplaceResource:
         vsix_path = os.path.join(self._package_cache_path, "extension.vsix")
         extension_vendor, extension_name = self._extension_uid.split(".")[:2]
 
-        response = urllib.request.urlopen(
-            self.extension_download_pattern.format(
-                vendor=extension_vendor,
-                name=extension_name,
-                version=self._extension_version,
+        try:
+            response = urllib.request.urlopen(
+                self.extension_download_pattern.format(
+                    vendor=extension_vendor,
+                    name=extension_name,
+                    version=self._extension_version,
+                )
             )
-        )
 
-        response_data = response.read()
-        if response.info().get("Content-Encoding") == "gzip":
-            response_data = gzip.decompress(response_data)
+            response_data = response.read()
+            if response.info().get("Content-Encoding") == "gzip":
+                response_data = gzip.decompress(response_data)
+        except urllib.error.HTTPError as e:
+            sublime.status_message(
+                "{}: Unable to download the server (HTTP error code: {})".format(
+                    self._package_name,
+                    e.code,
+                )
+            )
+
+            return None
 
         os.makedirs(os.path.dirname(vsix_path), exist_ok=True)
         with open(vsix_path, "wb") as f:

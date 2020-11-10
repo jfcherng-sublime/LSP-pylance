@@ -1,14 +1,21 @@
-import sublime
 import os
+import shutil
+import sublime
+import sublime_lib
 
 from typing import Any, Dict, List, Optional, Tuple
 
 from .my_lsp_utils import ApiWrapper, VscodeMarketplaceClientHandler
-from .utils import dotted_get
+from .utils import dotted_get, os_real_abs_join
+
+PACKAGE_NAME = "LSP-pylance"
+
+ST_PACKAGE_STORAGE_DIR = os_real_abs_join(sublime.cache_path(), "..", "Package Storage")
+LSP_PACKAGE_STORAGE_DIR = os_real_abs_join(ST_PACKAGE_STORAGE_DIR, PACKAGE_NAME)
 
 
 class LspPylancePlugin(VscodeMarketplaceClientHandler):
-    package_name = "LSP-pylance"
+    package_name = PACKAGE_NAME
 
     # @see https://marketplace.visualstudio.com/items?itemName=ms-python.vscode-pylance
     extension_uid = "ms-python.vscode-pylance"
@@ -31,11 +38,30 @@ class LspPylancePlugin(VscodeMarketplaceClientHandler):
     ]
 
     @classmethod
+    def setup(cls) -> None:
+        super().setup()
+        cls.copy_resources()
+
+    @staticmethod
+    def copy_resources() -> None:
+        folders = ["_resources"]
+
+        for folder in folders:
+            folder = folder.rstrip("/\\")
+
+            lsp_resource_dir = "{}/{}/".format(LSP_PACKAGE_STORAGE_DIR, folder)
+            resource_dir = "Packages/{}/{}/".format(PACKAGE_NAME, folder)
+
+            shutil.rmtree(lsp_resource_dir, ignore_errors=True)
+            sublime_lib.ResourcePath(resource_dir).copytree(lsp_resource_dir, exist_ok=True)  # type: ignore
+
+    @classmethod
     def additional_variables(cls) -> Optional[Dict[str, str]]:
         variables = super().additional_variables() or {}
         variables.update(
             {
-                # handy for ST plugin dev to include "sublime.py" and "sublime_plugin.py"
+                # handy for ST plugin dev
+                "lsp_resources_dir": os_real_abs_join(variables["package_cache_path"], "..", "_resources"),
                 "sublime_py_files_dir": os.path.dirname(sublime.__file__),
             }
         )

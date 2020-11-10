@@ -41,7 +41,8 @@
 			// virtual env
 			"$folder/.venv/Lib/site-packages",
 			"$folder/venv/Lib/site-packages",
-			// For Sublime Text plugin development
+			// ST plugin development
+			"$lsp_resources_dir/typings",
 			"$sublime_py_files_dir",
 			"$packages",
 		],
