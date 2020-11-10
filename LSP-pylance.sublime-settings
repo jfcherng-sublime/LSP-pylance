@@ -35,6 +35,9 @@
 		"python.analysis.autoSearchPaths": true,
 		// Additional import search resolution paths
 		"python.analysis.extraPaths": [
+			// project's stubs
+			"$folder/stubs",
+			"$folder/typings",
 			// virtual env
 			"$folder/.venv/Lib/site-packages",
 			"$folder/venv/Lib/site-packages",
