@@ -6,8 +6,10 @@ import sys
 
 from typing import Any, Dict, List, Tuple
 
-from .my_lsp_utils import ApiWrapper, VscodeMarketplaceClientHandler
-from .utils import dotted_get, os_real_abs_join
+from .consts import SERVER_BINARY_PATH, SERVER_VERSION
+from .helpers.ms_marketplace_lsp_utils import ApiWrapper, VscodeMarketplaceClientHandler
+from .helpers.ms_marketplace_lsp_utils.pretend_vscode import *
+from .helpers.utils import dotted_get, os_real_abs_join
 
 PACKAGE_NAME = "LSP-pylance"
 
@@ -21,8 +23,8 @@ class LspPylancePlugin(VscodeMarketplaceClientHandler):
 
     # @see https://marketplace.visualstudio.com/items?itemName=ms-python.vscode-pylance
     extension_uid = "ms-python.vscode-pylance"
-    extension_version = "2020.11.0"
-    server_binary_path = os.path.join("extension", "dist", "server.bundle.js")
+    extension_version = SERVER_VERSION
+    server_binary_path = SERVER_BINARY_PATH
     execute_with_node = True
 
     # commands provided by the server (useless at this moment)

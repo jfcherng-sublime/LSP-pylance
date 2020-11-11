@@ -3,8 +3,7 @@ import json
 from LSP.plugin.core import sessions
 from LSP.plugin.core.typing import Any, Dict
 
-from .my_lsp_utils import VscodeMarketplaceClientHandler
-
+from . import VscodeMarketplaceClientHandler
 
 vscode_signatures = {
     "clientInfo": {
@@ -17,7 +16,7 @@ vscode_signatures = {
             {
                 "locale": "en-us",
                 "availableLanguages": {},
-            }
+            },
         ),
     },
 }
