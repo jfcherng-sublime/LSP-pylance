@@ -19,7 +19,9 @@ SERVER_STORAGE_DIR = os_real_abs_join(LSP_PACKAGE_STORAGE_DIR, PACKAGE_NAME)
 
 class LspPylancePlugin(VscodeMarketplaceClientHandler):
     package_name = PACKAGE_NAME
-    resource_dirs = ["_resources"]  # type: List[str]
+
+    # the resources directory will be copied into the server storage directory
+    resources_dir = "_resources"
 
     # @see https://marketplace.visualstudio.com/items?itemName=ms-python.vscode-pylance
     extension_uid = "ms-python.vscode-pylance"
@@ -44,18 +46,15 @@ class LspPylancePlugin(VscodeMarketplaceClientHandler):
     @classmethod
     def setup(cls) -> None:
         super().setup()
-        cls.copy_resource_dirs()
+        cls.copy_resources_dir()
 
     @classmethod
-    def copy_resource_dirs(cls) -> None:
-        for folder in cls.resource_dirs:
-            folder = folder.rstrip("/\\")
+    def copy_resources_dir(cls) -> None:
+        lsp_resource_dir = "{}/{}/".format(SERVER_STORAGE_DIR, cls.resources_dir)
+        resources_dir = "Packages/{}/{}/".format(cls.package_name, cls.resources_dir)
 
-            lsp_resource_dir = "{}/{}/".format(SERVER_STORAGE_DIR, folder)
-            resource_dir = "Packages/{}/{}/".format(cls.package_name, folder)
-
-            shutil.rmtree(lsp_resource_dir, ignore_errors=True)
-            sublime_lib.ResourcePath(resource_dir).copytree(lsp_resource_dir, exist_ok=True)  # type: ignore
+        shutil.rmtree(lsp_resource_dir, ignore_errors=True)
+        sublime_lib.ResourcePath(resources_dir).copytree(lsp_resource_dir, exist_ok=True)  # type: ignore
 
     @classmethod
     def minimum_node_version(cls) -> Tuple[int, int, int]:
