@@ -18,6 +18,26 @@ You can peek [Pylance's changelog](https://marketplace.visualstudio.com/items/ms
 Some interesting findings:
 
 - The [vsintellicode.modelDownloadPath](https://github.com/MicrosoftDocs/intellicode/issues/231#issuecomment-708129568) setting in VSCode.
+- The model file download link: https://prod.intellicode.vsengsaas.visualstudio.com/api/v1/model/common/python/intellisense-members/output/latest (Taken from https://github.com/MicrosoftDocs/intellicode/issues/93#issuecomment-490240914)
+- Potentially related LSP command: `view.run_command('lsp_execute', {"command_name":"python.intellicode.loadLanguageServerExtension"})`
+
+  But this command results in unhandled Promise rejection:
+
+  ```text
+  LSP-pylance: (node:20292) UnhandledPromiseRejectionWarning: Error: Debug Failure. False expression.
+  LSP-pylance:     at _0x5f4b25.<anonymous> (C:\Users\XXX\AppData\Local\Sublime Text\Package Storage\LSP-pylance\ms-python.vscode-pylance~2020.11.0\extension\dist\server.bundle.js:1500:70)
+  LSP-pylance:     at Generator.next (<anonymous>)
+  LSP-pylance:     at C:\Users\XXX\AppData\Local\Sublime Text\Package Storage\LSP-pylance\ms-python.vscode-pylance~2020.11.0\extension\dist\server.bundle.js:1405:103
+  LSP-pylance:     at new Promise (<anonymous>)
+  LSP-pylance:     at _0x30cadb (C:\Users\XXX\AppData\Local\Sublime Text\Package Storage\LSP-pylance\ms-python.vscode-pylance~2020.11.0\extension\dist\server.bundle.js:1376:28)
+  LSP-pylance:     at _0x5f4b25.executeCommand (C:\Users\XXX\AppData\Local\Sublime Text\Package Storage\LSP-pylance\ms-python.vscode-pylance~2020.11.0\extension\dist\server.bundle.js:1490:32)
+  LSP-pylance:     at _0x5ae44f.executeCommand (C:\Users\XXX\AppData\Local\Sublime Text\Package Storage\LSP-pylance\ms-python.vscode-pylance~2020.11.0\extension\dist\server.bundle.js:3000:200)
+  LSP-pylance:     at _0x5ae44f.<anonymous> (C:\Users\XXX\AppData\Local\Sublime Text\Package Storage\LSP-pylance\ms-python.vscode-pylance~2020.11.0\extension\dist\pyright.bundle.js:17811:46)
+  LSP-pylance:     at Generator.next (<anonymous>)
+  LSP-pylance:     at C:\Users\XXX\AppData\Local\Sublime Text\Package Storage\LSP-pylance\ms-python.vscode-pylance~2020.11.0\extension\dist\pyright.bundle.js:17513:49
+  LSP-pylance: (Use `node --trace-warnings ...` to show where the warning was created)
+  LSP-pylance: (node:20292) UnhandledPromiseRejectionWarning: Unhandled promise rejection. This error originated either by throwing inside of an async function without a catch block, or by rejecting a promise which was not handled with .catch(). To terminate the node process on unhandled promise rejection, use the CLI flag `--unhandled-rejections=strict` (see https://nodejs.org/api/cli.html#cli_unhandled_rejections_mode). (rejection id: 2)
+  ```
 
 ## Disclaimer
 
