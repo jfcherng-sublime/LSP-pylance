@@ -63,7 +63,7 @@ class ServerVsMarketplaceResource:
 
     For example, for https://marketplace.visualstudio.com/items?itemName=ms-python.vscode-pylance
     - extension_uid = "ms-python.vscode-pylance"
-    - extension_version = "2020.10.1"
+    - extension_version = "2020.11.1"
     """
 
     extension_urls = {
@@ -166,6 +166,8 @@ class ServerVsMarketplaceResource:
     # -------------- #
 
     def _install_or_update(self) -> None:
+        os.makedirs(self.server_directory, exist_ok=True)
+
         # copy resources before downloading the server so it may use those resources
         self._copy_resource_dirs()
         self._download_extension()
@@ -174,13 +176,16 @@ class ServerVsMarketplaceResource:
         for folder in self._resource_dirs:
             folder = re.sub(r"[\\/]+", "/", folder).strip("\\/")
 
+            if not folder:
+                continue
+
             dir_src = "Packages/{}/{}/".format(self._package_name, folder)
             dir_dst = "{}/{}/".format(self.server_directory, folder)
 
             shutil.rmtree(dir_dst, ignore_errors=True)
             ResourcePath(dir_src).copytree(dir_dst, exist_ok=True)  # type: ignore
 
-    def _download_extension(self) -> None:
+    def _download_extension(self, save_vsix: bool = True) -> None:
         try:
             req = urllib.request.Request(
                 url=self._get_expaneded_url("download"),
@@ -196,37 +201,21 @@ class ServerVsMarketplaceResource:
                 if resp.info().get("Content-Encoding") == "gzip":
                     resp_data = gzip.decompress(resp_data)
         except urllib.error.HTTPError as e:
-            self._on_error("Unable to download the extension (HTTP code: {})".format(e.code))
-            return
-        except urllib.error.ContentTooShortError as e:
-            self._on_error("Extension was downloaded imcompletely...")
-            return
+            return self._on_error("Unable to download the extension (HTTP code: {})".format(e.code))
+        except urllib.error.ContentTooShortError:
+            return self._on_error("Extension was downloaded imcompletely...")
 
-        vsix_path = os.path.join(self.server_directory, "extension.vsix")
-        os.makedirs(os.path.dirname(vsix_path), exist_ok=True)
-        with io.open(vsix_path, "wb") as f:
-            f.write(resp_data)
-        self._decompress_vsix(vsix_path)
+        if save_vsix:
+            with io.open(os.path.join(self.server_directory, "extension.vsix"), "wb") as f:
+                f.write(resp_data)
+
+        with zipfile.ZipFile(io.BytesIO(resp_data), "r") as f:
+            f.extractall(self.server_directory)
 
         if os.path.isfile(self.binary_path):
             self._on_install_success("")
         else:
             self._on_error("Preparation done but somehow the server binary path is not a file.")
-
-    @staticmethod
-    def _decompress_vsix(file: str, dst_dir: Optional[str] = None) -> None:
-        """
-        @brief Decompress the .vsix (ZIP) tarball.
-
-        @param file    The .vsix tarball
-        @param dst_dir The destination directory
-        """
-
-        if not dst_dir:
-            dst_dir = os.path.dirname(file)
-
-        with zipfile.ZipFile(file) as f:
-            f.extractall(dst_dir)
 
     def _get_expaneded_url(self, item: str) -> str:
         extension_vendor, extension_name = self._extension_uid.split(".")[:2]
