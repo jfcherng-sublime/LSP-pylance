@@ -1,5 +1,6 @@
 from LSP.plugin.core.typing import Optional
 import gzip
+import io
 import os
 import shutil
 import sublime
@@ -77,48 +78,52 @@ class ServerVscodeMarketplaceResource:
             "{}~{}".format(self._extension_uid, self._extension_version),
         )
 
-        if not os.path.isfile(self.binary_path):
-            self._download_extension()
-
         if os.path.isfile(self.binary_path):
             self._is_ready = True
+        else:
+            self._download_extension(is_async=True)
 
     def cleanup(self) -> None:
         if os.path.isdir(self._package_cache_path):
             shutil.rmtree(self._package_cache_path)
 
-    def _download_extension(self) -> None:
-        vsix_path = os.path.join(self._package_cache_path, "extension.vsix")
-        extension_vendor, extension_name = self._extension_uid.split(".")[:2]
+    def _download_extension(self, is_async=False) -> None:
+        def _download_worker(self) -> None:
+            vsix_path = os.path.join(self._package_cache_path, "extension.vsix")
+            extension_vendor, extension_name = self._extension_uid.split(".")[:2]
 
-        try:
-            response = urllib.request.urlopen(
-                self.extension_download_pattern.format(
-                    vendor=extension_vendor,
-                    name=extension_name,
-                    version=self._extension_version,
+            try:
+                response = urllib.request.urlopen(
+                    self.extension_download_pattern.format(
+                        vendor=extension_vendor,
+                        name=extension_name,
+                        version=self._extension_version,
+                    )
                 )
-            )
 
-            response_data = response.read()
-            if response.info().get("Content-Encoding") == "gzip":
-                response_data = gzip.decompress(response_data)
-        except urllib.error.HTTPError as e:
-            sublime.status_message(
-                "{}: Unable to download the server (HTTP error code: {})".format(
-                    self._package_name,
-                    e.code,
-                )
-            )
+                response_data = response.read()
+                if response.info().get("Content-Encoding") == "gzip":
+                    response_data = gzip.decompress(response_data)
 
-            return None
+            except urllib.error.HTTPError as e:
+                self._on_error("Unable to download the server (HTTP code: {})".format(e.code))
 
-        os.makedirs(os.path.dirname(vsix_path), exist_ok=True)
-        with open(vsix_path, "wb") as f:
-            f.write(response_data)
-        self._decompress_vsix(vsix_path)
+                return
 
-    def _on_install_success(self, _: str) -> None:
+            os.makedirs(os.path.dirname(vsix_path), exist_ok=True)
+            with io.open(vsix_path, "wb") as f:
+                f.write(response_data)
+            self._decompress_vsix(vsix_path)
+
+            if os.path.isfile(self.binary_path):
+                self._on_install_success()
+
+        if is_async:
+            sublime.set_timeout_async(lambda: _download_worker(self), 0)
+        else:
+            _download_worker(self)
+
+    def _on_install_success(self) -> None:
         self._is_ready = True
         log_and_show_message("{}: Server installed. Sublime Text restart might be required.".format(self._package_name))
 
