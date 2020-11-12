@@ -1,11 +1,10 @@
-from .server_vscode_marketplace_resource import ServerVscodeMarketplaceResource
-from lsp_utils.api_wrapper import ApiWrapperInterface
+from .server_vs_marketplace_resource import get_server_vs_marketplace_resource_for_package
+from .server_vs_marketplace_resource import ServerVsMarketplaceResource
 from LSP.plugin.core.handlers import LanguageHandler
-from LSP.plugin.core.protocol import Notification
-from LSP.plugin.core.protocol import Request
-from LSP.plugin.core.protocol import Response
 from LSP.plugin.core.settings import ClientConfig, read_client_config
-from LSP.plugin.core.typing import Any, Callable, Dict, List, Optional
+from LSP.plugin.core.typing import Any, Dict, List, Optional, Tuple
+from lsp_utils.npm_client_handler import ApiWrapper
+import os
 import shutil
 import sublime
 
@@ -20,45 +19,16 @@ CLIENT_SETTING_KEYS = {
 }  # type: ignore
 
 
-def is_node_installed():
-    return shutil.which("node") is not None
-
-
-class ApiWrapper(ApiWrapperInterface):
-    def __init__(self, client):
-        self.__client = client
-
-    def on_notification(self, method: str, handler: Callable) -> None:
-        self.__client.on_notification(method, handler)
-
-    def on_request(self, method: str, handler: Callable) -> None:
-        def on_response(params, request_id):
-            handler(params, lambda result: send_response(request_id, result))
-
-        def send_response(request_id, result):
-            self.__client.send_response(Response(request_id, result))
-
-        self.__client.on_request(method, on_response)
-
-    def send_notification(self, method: str, params: Any) -> None:
-        self.__client.send_notification(Notification(method, params))
-
-    def send_request(self, method: str, params: Any, handler: Callable[[Optional[str], bool], None]) -> None:
-        self.__client.send_request(
-            Request(method, params),
-            lambda result: handler(result, False),
-            lambda result: handler(result, True),
-        )
-
-
-class VscodeMarketplaceClientHandler(LanguageHandler):
+class VsMarketplaceClientHandler(LanguageHandler):
+    # To be overridden by subclass.
     package_name = ""
     extension_uid = ""
     extension_version = ""
     server_binary_path = ""
     execute_with_node = False
+    resource_dirs = []  # type: List[str]
     # Internal
-    __server = None  # type: Optional[ServerVscodeMarketplaceResource]
+    __server = None  # type: Optional[ServerVsMarketplaceResource]
 
     def __init__(self):
         super().__init__()
@@ -76,23 +46,46 @@ class VscodeMarketplaceClientHandler(LanguageHandler):
         assert cls.extension_version
         assert cls.server_binary_path
         if not cls.__server:
-            cls.__server = ServerVscodeMarketplaceResource(
+            cls.__server = get_server_vs_marketplace_resource_for_package(
                 cls.package_name,
                 cls.extension_uid,
                 cls.extension_version,
                 cls.server_binary_path,
-                cls.install_in_cache(),
+                cls.package_storage(),
+                cls.minimum_node_version(),
+                cls.resource_dirs,
             )
-        cls.__server.setup()
+            if cls.__server and cls.__server.needs_installation():
+                cls.__server.install_or_update(async_io=True)
 
     @classmethod
     def cleanup(cls) -> None:
-        if cls.__server:
-            cls.__server.cleanup()
+        if os.path.isdir(cls.package_storage()):
+            shutil.rmtree(cls.package_storage())
 
     @property
     def name(self) -> str:
-        return self.package_name.lower()  # type: ignore
+        return self.package_name.lower()
+
+    @classmethod
+    def minimum_node_version(cls) -> Tuple[int, int, int]:
+        return (12, 0, 0)
+
+    @classmethod
+    def package_storage(cls) -> str:
+        if cls.install_in_cache():
+            storage_path = sublime.cache_path()
+        else:
+            storage_path = os.path.abspath(os.path.join(sublime.cache_path(), "..", "Package Storage"))
+        return os.path.join(storage_path, cls.package_name)
+
+    @classmethod
+    def binary_path(cls) -> str:
+        return cls.__server.binary_path if cls.__server else ""
+
+    @classmethod
+    def server_directory_path(cls) -> str:
+        return cls.__server.server_directory if cls.__server else ""
 
     @classmethod
     def install_in_cache(cls) -> bool:
@@ -101,27 +94,25 @@ class VscodeMarketplaceClientHandler(LanguageHandler):
     @classmethod
     def additional_variables(cls) -> Optional[Dict[str, str]]:
         return {
-            "package_cache_path": cls.__server.package_cache_path,
-            "server_path": cls.__server.binary_path,
+            "package_storage": cls.package_storage(),
+            "server_directory_path": cls.server_directory_path(),
+            "server_path": cls.binary_path(),
         }
 
     @property
     def config(self) -> ClientConfig:
-        assert self.__server
-
-        configuration = {"enabled": True}  # type: Dict[str, Any]
+        configuration = {"enabled": self.__server != None}  # type: Dict[str, Any]
         configuration.update(self._read_configuration())
 
         if not configuration["command"]:
-            configuration["command"] = (
-                (["node"] if self.execute_with_node else []) + [self.__server.binary_path] + self.get_binary_arguments()
-            )
+            configuration["command"] = self._default_launch_command()
 
         self.on_client_configuration_ready(configuration)
-        return read_client_config(self.name, configuration)
+        base_settings_path = "Packages/{}/{}".format(self.package_name, self.settings_filename)
+        return read_client_config(self.name, configuration, base_settings_path)
 
     @classmethod
-    def get_binary_arguments(cls) -> List[str]:
+    def get_binary_arguments(cls):
         """
         Returns a list of extra arguments to append when starting server.
         """
@@ -130,16 +121,12 @@ class VscodeMarketplaceClientHandler(LanguageHandler):
     def _read_configuration(self) -> Dict:
         settings = {}  # type: Dict
         loaded_settings = sublime.load_settings(self.settings_filename)
-
         if loaded_settings:
-            migrated = self._migrate_obsolete_settings(loaded_settings)
             changed = self.on_settings_read(loaded_settings)
-            if migrated or changed:
+            if changed:
                 sublime.save_settings(self.settings_filename)
-
             for key, default in CLIENT_SETTING_KEYS.items():
                 settings[key] = loaded_settings.get(key, default)
-
         return settings
 
     @classmethod
@@ -153,22 +140,6 @@ class VscodeMarketplaceClientHandler(LanguageHandler):
         """
         return False
 
-    def _migrate_obsolete_settings(self, settings: sublime.Settings):
-        """
-        Migrates setting with a root `client` key to flattened structure.
-        Receives a `sublime.Settings` object.
-
-        Returns True if settings were migrated.
-        """
-        client = settings.get("client", {})  # type: Dict[str, Any]
-        if client:
-            settings.erase("client")
-            # Migrate old keys
-            for key, value in client.items():
-                settings.set(key, value)
-            return True
-        return False
-
     @classmethod
     def on_client_configuration_ready(cls, configuration: Dict) -> None:
         """
@@ -180,12 +151,7 @@ class VscodeMarketplaceClientHandler(LanguageHandler):
 
     @classmethod
     def on_start(cls, window) -> bool:
-        if not is_node_installed():
-            sublime.status_message("{}: Please install Node.js for the server to work.".format(cls.package_name))
-            return False
-        if not cls.__server:
-            return False
-        return cls.__server.ready
+        return cls.__server != None and cls.__server.ready
 
     def on_initialized(self, client) -> None:
         """
@@ -195,3 +161,19 @@ class VscodeMarketplaceClientHandler(LanguageHandler):
 
     def on_ready(self, api: ApiWrapper) -> None:
         pass
+
+    # -------------- #
+    # custom methods #
+    # -------------- #
+
+    @classmethod
+    def _default_launch_command(cls) -> List[str]:
+        command = []  # type: List[str]
+
+        if cls.execute_with_node:
+            command.append("node")
+
+        command.append(cls.binary_path())
+        command.extend(cls.get_binary_arguments())
+
+        return command

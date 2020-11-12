@@ -1,21 +1,6 @@
-import os
 import sublime
 
-from pathlib import Path
-from typing import Any, Optional, Union
-
-
-def os_real_abs_join(path: Union[str, Path], *paths: Union[str, Path]) -> str:
-    """
-    @brief A shorthand of os.path.realpath(os.path.abspath(os.path.join(path, *paths)))
-
-    @param path  The path
-    @param paths The paths
-
-    @return The concatenated and resolved path.
-    """
-
-    return os.path.realpath(os.path.abspath(os.path.join(path, *paths)))
+from typing import Any, Optional
 
 
 def dotted_get(var: Any, dotted: str, default: Optional[Any] = None) -> Any:

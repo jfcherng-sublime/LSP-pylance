@@ -1,33 +1,38 @@
 import os
-import shutil
 import sublime
-import sublime_lib
 import sys
 
 from typing import Any, Dict, List, Tuple
 
 from .consts import SERVER_BINARY_PATH, SERVER_VERSION
-from .helpers.ms_marketplace_lsp_utils import ApiWrapper, VscodeMarketplaceClientHandler
-from .helpers.ms_marketplace_lsp_utils.pretend_vscode import *
-from .helpers.utils import dotted_get, os_real_abs_join
-
-PACKAGE_NAME = "LSP-pylance"
-
-LSP_PACKAGE_STORAGE_DIR = os_real_abs_join(sublime.cache_path(), "..", "Package Storage")
-SERVER_STORAGE_DIR = os_real_abs_join(LSP_PACKAGE_STORAGE_DIR, PACKAGE_NAME)
+from .helpers.utils import dotted_get
+from .helpers.vs_marketplace_lsp_utils import ApiWrapperInterface, VsMarketplaceClientHandler
+from .helpers.vs_marketplace_lsp_utils.pretend_vscode import *
 
 
-class LspPylancePlugin(VscodeMarketplaceClientHandler):
-    package_name = PACKAGE_NAME
+def plugin_loaded() -> None:
+    LspPylancePlugin.setup()
 
-    # the resources directory will be copied into the server storage directory
-    resources_dir = "_resources"
+
+def plugin_unloaded() -> None:
+    # the cleanup() will delete the downloaded server
+    # we don't want this during developing this plugin...
+
+    # LspPylancePlugin.cleanup()
+    pass
+
+
+class LspPylancePlugin(VsMarketplaceClientHandler):
+    package_name = "LSP-pylance"
 
     # @see https://marketplace.visualstudio.com/items?itemName=ms-python.vscode-pylance
     extension_uid = "ms-python.vscode-pylance"
     extension_version = SERVER_VERSION
     server_binary_path = SERVER_BINARY_PATH
     execute_with_node = True
+
+    # resources directories will be copied into the server directory during server installation
+    resource_dirs = ["_resources"]
 
     # commands provided by the server (useless at this moment)
     supported_commands = [
@@ -44,19 +49,6 @@ class LspPylancePlugin(VscodeMarketplaceClientHandler):
     ]
 
     @classmethod
-    def setup(cls) -> None:
-        super().setup()
-        cls.copy_resources_dir()
-
-    @classmethod
-    def copy_resources_dir(cls) -> None:
-        lsp_resource_dir = "{}/{}/".format(SERVER_STORAGE_DIR, cls.resources_dir)
-        resources_dir = "Packages/{}/{}/".format(cls.package_name, cls.resources_dir)
-
-        shutil.rmtree(lsp_resource_dir, ignore_errors=True)
-        sublime_lib.ResourcePath(resources_dir).copytree(lsp_resource_dir, exist_ok=True)  # type: ignore
-
-    @classmethod
     def minimum_node_version(cls) -> Tuple[int, int, int]:
         return (12, 0, 0)
 
@@ -69,7 +61,7 @@ class LspPylancePlugin(VscodeMarketplaceClientHandler):
 
             # add package dependencies into "python.analysis.extraPaths"
             extraPaths = server_settings.get("python.analysis.extraPaths", [])  # type: List[str]
-            extraPaths.append("$package_cache_path/../_resources/typings")
+            extraPaths.append("$server_directory_path/_resources/typings")
             extraPaths.extend(cls.find_package_dependency_dirs())
             server_settings["python.analysis.extraPaths"] = extraPaths
 
@@ -77,8 +69,12 @@ class LspPylancePlugin(VscodeMarketplaceClientHandler):
 
         return False
 
-    def on_ready(self, api: ApiWrapper) -> None:
+    def on_ready(self, api: ApiWrapperInterface) -> None:
         api.on_notification("telemetry/event", lambda params: self._handle_telemetry(params))
+
+    # -------------- #
+    # custom methods #
+    # -------------- #
 
     @staticmethod
     def find_package_dependency_dirs() -> List[str]:

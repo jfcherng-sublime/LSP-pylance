@@ -3,7 +3,7 @@ import json
 from LSP.plugin.core import sessions
 from LSP.plugin.core.typing import Any, Dict
 
-from . import VscodeMarketplaceClientHandler
+from . import VsMarketplaceClientHandler
 
 vscode_signatures = {
     "clientInfo": {
@@ -30,7 +30,7 @@ def on_client_configuration_ready(cls, configuration: Dict[str, Any]) -> None:
     configuration["env"].update(vscode_signatures["env"])
 
 
-VscodeMarketplaceClientHandler.on_client_configuration_ready = on_client_configuration_ready
+VsMarketplaceClientHandler.on_client_configuration_ready = on_client_configuration_ready  # type: ignore
 
 ##### END: override server env #####
 
