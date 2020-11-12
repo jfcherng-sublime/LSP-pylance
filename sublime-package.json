@@ -10,6 +10,11 @@
           "definitions": {
             "PluginConfig": {
               "properties": {
+                "developing": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "if you are developing this plugin...",
+                },
                 "dev_environment": {
                   "description": "Enables the pre-defined environment setup for specific developing needs.",
                   "enum": [

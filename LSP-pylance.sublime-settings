@@ -1,4 +1,6 @@
 {
+	// if you are developing this plugin...
+	"developing": false,
 	//////////////////
 	// LSP settings //
 	//////////////////

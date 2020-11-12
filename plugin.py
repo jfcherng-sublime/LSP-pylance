@@ -5,6 +5,7 @@ import sys
 from typing import Any, Dict, List, Tuple
 
 from .consts import SERVER_BINARY_PATH, SERVER_VERSION
+from .helpers.settings import get_setting
 from .helpers.utils import dotted_get
 from .helpers.vs_marketplace_lsp_utils import ApiWrapperInterface, VsMarketplaceClientHandler
 from .helpers.vs_marketplace_lsp_utils.pretend_vscode import *
@@ -17,9 +18,8 @@ def plugin_loaded() -> None:
 def plugin_unloaded() -> None:
     # the cleanup() will delete the downloaded server
     # we don't want this during developing this plugin...
-
-    # LspPylancePlugin.cleanup()
-    pass
+    if not get_setting("developing"):
+        LspPylancePlugin.cleanup()
 
 
 class LspPylancePlugin(VsMarketplaceClientHandler):
