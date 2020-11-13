@@ -86,6 +86,9 @@ class LspPylancePlugin(VsMarketplaceClientHandler):
         dep_dirs.remove(packages_path)
         dep_dirs.append(packages_path)
 
+        # sometimes I will just extract .sublime-package files
+        dep_dirs.append(sublime.installed_packages_path())
+
         return [path for path in dep_dirs if os.path.isdir(path)]
 
     def _handle_telemetry(self, params: Dict[str, Any]) -> None:
