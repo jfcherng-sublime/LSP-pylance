@@ -1,7 +1,9 @@
 from .server_vs_marketplace_resource import get_server_vs_marketplace_resource_for_package
 from .server_vs_marketplace_resource import ServerVsMarketplaceResource
+from .vscode_settings import configure_settings_like_vscode
 from LSP.plugin.core.handlers import LanguageHandler
-from LSP.plugin.core.settings import ClientConfig, read_client_config
+from LSP.plugin.core.settings import ClientConfig
+from LSP.plugin.core.settings import read_client_config
 from LSP.plugin.core.typing import Any, Dict, List, Optional, Tuple
 from lsp_utils.npm_client_handler import ApiWrapper
 import os
@@ -26,7 +28,9 @@ class VsMarketplaceClientHandler(LanguageHandler):
     extension_version = ""
     server_binary_path = ""
     execute_with_node = False
+    pretend_vscode = False
     resource_dirs = []  # type: List[str]
+
     # Internal
     __server = None  # type: Optional[ServerVsMarketplaceResource]
 
@@ -108,6 +112,10 @@ class VsMarketplaceClientHandler(LanguageHandler):
             configuration["command"] = self._default_launch_command()
 
         self.on_client_configuration_ready(configuration)
+
+        if self.pretend_vscode:
+            configure_settings_like_vscode(configuration)
+
         base_settings_path = "Packages/{}/{}".format(self.package_name, self.settings_filename)
         return read_client_config(self.name, configuration, base_settings_path)
 

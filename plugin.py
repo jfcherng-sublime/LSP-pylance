@@ -8,10 +8,11 @@ from .consts import SERVER_BINARY_PATH, SERVER_VERSION
 from .helpers.settings import get_setting
 from .helpers.utils import dotted_get
 from .helpers.vs_marketplace_lsp_utils import ApiWrapperInterface, VsMarketplaceClientHandler
-from .helpers.vs_marketplace_lsp_utils.pretend_vscode import *
+from .helpers.vs_marketplace_lsp_utils.vscode_settings import use_vscode_client_info
 
 
 def plugin_loaded() -> None:
+    use_vscode_client_info()
     LspPylancePlugin.setup()
 
 
@@ -30,6 +31,7 @@ class LspPylancePlugin(VsMarketplaceClientHandler):
     extension_version = SERVER_VERSION
     server_binary_path = SERVER_BINARY_PATH
     execute_with_node = True
+    pretend_vscode = True
 
     # resources directories will be copied into the server directory during server installation
     resource_dirs = ["_resources"]

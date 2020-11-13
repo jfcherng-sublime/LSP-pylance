@@ -1,5 +1,6 @@
 from .server_vs_marketplace_resource import get_server_vs_marketplace_resource_for_package
 from .server_vs_marketplace_resource import ServerVsMarketplaceResource
+from .vscode_settings import configure_settings_like_vscode
 from LSP.plugin import AbstractPlugin
 from LSP.plugin import ClientConfig
 from LSP.plugin import register_plugin
@@ -30,6 +31,7 @@ class VsMarketplaceClientHandler(AbstractPlugin):
     extension_version = ""
     server_binary_path = ""
     execute_with_node = False
+    pretend_vscode = False
     resource_dirs = []  # type: List[str]
 
     # Internal
@@ -100,7 +102,12 @@ class VsMarketplaceClientHandler(AbstractPlugin):
         settings_dict = {}
         for key, default in CLIENT_SETTING_KEYS.items():
             settings_dict[key] = settings.get(key, default)
+
         cls.on_client_configuration_ready(settings_dict)
+
+        if cls.pretend_vscode:
+            configure_settings_like_vscode(settings_dict)
+
         for key in CLIENT_SETTING_KEYS.keys():
             settings.set(key, settings_dict[key])
 
