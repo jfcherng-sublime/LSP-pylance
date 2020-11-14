@@ -7,7 +7,8 @@ from typing import Any, Dict, List, Tuple
 from .consts import SERVER_BINARY_PATH, SERVER_VERSION
 from .helpers.settings import get_setting
 from .helpers.utils import dotted_get, unique
-from .helpers.vs_marketplace_lsp_utils import ApiWrapperInterface, VsMarketplaceClientHandler
+from .helpers.vs_marketplace_lsp_utils import VsMarketplaceClientHandler
+from .helpers.vs_marketplace_lsp_utils.decorators import as_notification_handler
 from .helpers.vs_marketplace_lsp_utils.vscode_settings import configure_lsp_like_vscode
 
 
@@ -73,8 +74,25 @@ class LspPylancePlugin(VsMarketplaceClientHandler):
 
         return False
 
-    def on_ready(self, api: ApiWrapperInterface) -> None:
-        api.on_notification("telemetry/event", self._handle_telemetry)
+    # -------- #
+    # handlers #
+    # -------- #
+
+    @as_notification_handler("telemetry/event")
+    def nh_telemetry_event(self, params: Dict[str, Any]) -> None:
+        """ Handles notification event: `telemetry/event` """
+
+        event_name = dotted_get(params, "EventName", "")
+        measurements = dotted_get(params, "Measurements", {})
+
+        if event_name == "language_server/analysis_complete":
+            return self._status_msg(
+                "Analysis {file_counts} files completed in {time_s:.3f} seconds.{first_time}".format(
+                    file_counts="{numFilesAnalyzed}/{numFilesInProgram}".format_map(measurements),
+                    time_s=dotted_get(measurements, "elapsedMs", 0) / 1000,
+                    first_time=" (first run)" if dotted_get(measurements, "isFirstRun") else "",
+                )
+            )
 
     # -------------- #
     # custom methods #
@@ -91,19 +109,6 @@ class LspPylancePlugin(VsMarketplaceClientHandler):
         dep_dirs.append(packages_path)
 
         return [path for path in dep_dirs if os.path.isdir(path)]
-
-    def _handle_telemetry(self, params: Dict[str, Any]) -> None:
-        event_name = dotted_get(params, "EventName", "")
-        measurements = dotted_get(params, "Measurements", {})
-
-        if event_name == "language_server/analysis_complete":
-            return self._status_msg(
-                "Analysis {file_counts} files completed in {time_s:.3f} seconds.{first_time}".format(
-                    file_counts="{numFilesAnalyzed}/{numFilesInProgram}".format_map(measurements),
-                    time_s=dotted_get(measurements, "elapsedMs", 0) / 1000,
-                    first_time=" (first run)" if dotted_get(measurements, "isFirstRun") else "",
-                )
-            )
 
     @classmethod
     def _plugin_msg(cls, msg: str) -> str:

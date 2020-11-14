@@ -9,6 +9,7 @@ from LSP.plugin import unregister_plugin
 from LSP.plugin import WorkspaceFolder
 from LSP.plugin.core.typing import Any, Dict, List, Optional, Tuple
 from lsp_utils.npm_client_handler_v2 import ApiWrapper
+import inspect
 import os
 import shutil
 import sublime
@@ -200,7 +201,10 @@ class VsMarketplaceClientHandler(AbstractPlugin):
         super().__init__(weaksession)
         if not self.package_name:
             return
-        self.on_ready(ApiWrapper(self))
+
+        api = ApiWrapper(self)
+        self._register_custom_server_event_handlers(api)
+        self.on_ready(api)
 
     def on_ready(self, api: ApiWrapper) -> None:
         pass
@@ -208,6 +212,16 @@ class VsMarketplaceClientHandler(AbstractPlugin):
     # -------------- #
     # custom methods #
     # -------------- #
+
+    def _register_custom_server_event_handlers(self, api: ApiWrapper) -> None:
+        for _, func in inspect.getmembers(self, predicate=inspect.isroutine):
+            event_name = getattr(func, "__notification_event_name", None)  # type: Optional[str]
+            if event_name:
+                api.on_notification(event_name, func)
+
+            event_name = getattr(func, "__request_event_name", None)  # type: Optional[str]
+            if event_name:
+                api.on_request(event_name, func)
 
     @classmethod
     def _default_launch_command(cls) -> List[str]:

@@ -6,6 +6,7 @@ from LSP.plugin.core.settings import ClientConfig
 from LSP.plugin.core.settings import read_client_config
 from LSP.plugin.core.typing import Any, Dict, List, Optional, Tuple
 from lsp_utils.npm_client_handler import ApiWrapper
+import inspect
 import os
 import shutil
 import sublime
@@ -165,7 +166,10 @@ class VsMarketplaceClientHandler(LanguageHandler):
         """
         This method should not be overridden. Use the `on_ready` abstraction.
         """
-        self.on_ready(ApiWrapper(client))
+
+        api = ApiWrapper(client)
+        self._register_custom_server_event_handlers(api)
+        self.on_ready(api)
 
     def on_ready(self, api: ApiWrapper) -> None:
         pass
@@ -173,6 +177,16 @@ class VsMarketplaceClientHandler(LanguageHandler):
     # -------------- #
     # custom methods #
     # -------------- #
+
+    def _register_custom_server_event_handlers(self, api: ApiWrapper) -> None:
+        for _, func in inspect.getmembers(self, predicate=inspect.isroutine):
+            event_name = getattr(func, "__notification_event_name", None)  # type: Optional[str]
+            if event_name:
+                api.on_notification(event_name, func)
+
+            event_name = getattr(func, "__request_event_name", None)  # type: Optional[str]
+            if event_name:
+                api.on_request(event_name, func)
 
     @classmethod
     def _default_launch_command(cls) -> List[str]:
