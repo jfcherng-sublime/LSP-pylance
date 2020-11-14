@@ -8,7 +8,8 @@ from LSP.plugin.core.typing import Union
 VSCODE_SIGNATURES = {
     "clientInfo": {
         "name": "vscode",
-        "version": "1.50.1",
+        # @see https://github.com/microsoft/vscode/releases/latest
+        "version": "1.51.1",
     },
     "env": {
         "ELECTRON_RUN_AS_NODE": "1",
@@ -40,6 +41,8 @@ def configure_settings_like_vscode(settings: Union[sublime.Settings, dict]) -> N
 def use_vscode_client_info() -> None:
     """ Modify the client info of the LSP session to VSCode's """
 
+    # this method will result in all sessions use the modified clientInfo
+    # so this should be only executed once...
     if hasattr(sessions, "__use_vscode_client_info"):
         return
 
