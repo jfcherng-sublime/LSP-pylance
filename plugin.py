@@ -6,13 +6,13 @@ from typing import Any, Dict, List, Tuple
 
 from .consts import SERVER_BINARY_PATH, SERVER_VERSION
 from .helpers.settings import get_setting
-from .helpers.utils import dotted_get
+from .helpers.utils import dotted_get, unique
 from .helpers.vs_marketplace_lsp_utils import ApiWrapperInterface, VsMarketplaceClientHandler
-from .helpers.vs_marketplace_lsp_utils.vscode_settings import use_vscode_client_info
+from .helpers.vs_marketplace_lsp_utils.vscode_settings import configure_lsp_like_vscode
 
 
 def plugin_loaded() -> None:
-    use_vscode_client_info()
+    configure_lsp_like_vscode()
     LspPylancePlugin.setup()
 
 
@@ -65,14 +65,16 @@ class LspPylancePlugin(VsMarketplaceClientHandler):
             extraPaths = server_settings.get("python.analysis.extraPaths", [])  # type: List[str]
             extraPaths.append("$server_directory_path/_resources/typings")
             extraPaths.extend(cls.find_package_dependency_dirs())
-            server_settings["python.analysis.extraPaths"] = extraPaths
+            # sometimes I will just extract .sublime-package files
+            extraPaths.append(sublime.installed_packages_path())
+            server_settings["python.analysis.extraPaths"] = list(unique(extraPaths, stable=True))
 
             settings.set("settings", server_settings)
 
         return False
 
     def on_ready(self, api: ApiWrapperInterface) -> None:
-        api.on_notification("telemetry/event", lambda params: self._handle_telemetry(params))
+        api.on_notification("telemetry/event", self._handle_telemetry)
 
     # -------------- #
     # custom methods #
@@ -88,9 +90,6 @@ class LspPylancePlugin(VsMarketplaceClientHandler):
         dep_dirs.remove(packages_path)
         dep_dirs.append(packages_path)
 
-        # sometimes I will just extract .sublime-package files
-        dep_dirs.append(sublime.installed_packages_path())
-
         return [path for path in dep_dirs if os.path.isdir(path)]
 
     def _handle_telemetry(self, params: Dict[str, Any]) -> None:
@@ -98,16 +97,11 @@ class LspPylancePlugin(VsMarketplaceClientHandler):
         measurements = dotted_get(params, "Measurements", {})
 
         if event_name == "language_server/analysis_complete":
-            extras = []  # type: List[str]
-
-            if dotted_get(measurements, "isFirstRun", 0):
-                extras.append("first run")
-
             return self._status_msg(
-                "Analysis {file_counts} files completed in {time_s:.3f} seconds. {extra}".format(
+                "Analysis {file_counts} files completed in {time_s:.3f} seconds.{first_time}".format(
                     file_counts="{numFilesAnalyzed}/{numFilesInProgram}".format_map(measurements),
                     time_s=dotted_get(measurements, "elapsedMs", 0) / 1000,
-                    extra="({})".format(",".join(extras)) if extras else "",
+                    first_time=" (first run)" if dotted_get(measurements, "isFirstRun") else "",
                 )
             )
 

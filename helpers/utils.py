@@ -1,7 +1,9 @@
 import re
 import sublime
 
-from typing import Any, List, Optional
+from typing import Any, Iterable, Iterator, List, Optional, TypeVar
+
+_T = TypeVar("_T")
 
 
 def dotted_string_to_keys(dotted: str) -> List[str]:
@@ -117,3 +119,15 @@ def dotted_set_settings(settings: sublime.Settings, dotted: str, value: Any) -> 
         top_item = value
 
     settings.set(keys[0], top_item)
+
+
+def unique(it: Iterable[_T], stable: bool = False) -> Iterator[_T]:
+    """
+    Generates a collection of unique items from the iterable.
+
+    @param stable If True, returned items are garanteed to be in their original relative ordering.
+    """
+
+    from collections import OrderedDict
+
+    return (OrderedDict.fromkeys(it).keys() if stable else set(it)).__iter__()

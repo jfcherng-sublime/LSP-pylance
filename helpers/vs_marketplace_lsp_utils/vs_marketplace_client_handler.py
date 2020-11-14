@@ -1,6 +1,6 @@
 from .server_vs_marketplace_resource import get_server_vs_marketplace_resource_for_package
 from .server_vs_marketplace_resource import ServerVsMarketplaceResource
-from .vscode_settings import configure_settings_like_vscode
+from .vscode_settings import configure_server_settings_like_vscode
 from LSP.plugin.core.handlers import LanguageHandler
 from LSP.plugin.core.settings import ClientConfig
 from LSP.plugin.core.settings import read_client_config
@@ -114,10 +114,10 @@ class VsMarketplaceClientHandler(LanguageHandler):
         self.on_client_configuration_ready(configuration)
 
         if self.pretend_vscode:
-            configure_settings_like_vscode(configuration)
+            configure_server_settings_like_vscode(configuration)
 
         base_settings_path = "Packages/{}/{}".format(self.package_name, self.settings_filename)
-        return read_client_config(self.name, configuration, base_settings_path)
+        return read_client_config(self.name, configuration, base_settings_path)  # type: ignore
 
     @classmethod
     def get_binary_arguments(cls):
