@@ -5,6 +5,7 @@ import sys
 from typing import Any, Dict, List, Tuple
 
 from .consts import SERVER_BINARY_PATH, SERVER_VERSION
+from .helpers.plugin_message import status_msg
 from .helpers.settings import get_setting
 from .helpers.utils import dotted_get, unique
 from .helpers.vs_marketplace_lsp_utils import VsMarketplaceClientHandler
@@ -86,12 +87,11 @@ class LspPylancePlugin(VsMarketplaceClientHandler):
         measurements = dotted_get(params, "Measurements", {})
 
         if event_name == "language_server/analysis_complete":
-            return self._status_msg(
-                "Analysis {file_counts} files completed in {time_s:.3f} seconds.{first_time}".format(
-                    file_counts="{numFilesAnalyzed}/{numFilesInProgram}".format_map(measurements),
-                    time_s=dotted_get(measurements, "elapsedMs", 0) / 1000,
-                    first_time=" (first run)" if dotted_get(measurements, "isFirstRun") else "",
-                )
+            return status_msg(
+                "{_}: Analysis {file_counts} files completed in {time_s:.3f} seconds.{first_run}",
+                file_counts="{numFilesAnalyzed}/{numFilesInProgram}".format_map(measurements),
+                time_s=dotted_get(measurements, "elapsedMs", 0) / 1000,
+                first_run=" (first run)" if dotted_get(measurements, "isFirstRun") else "",
             )
 
     # -------------- #
@@ -109,19 +109,3 @@ class LspPylancePlugin(VsMarketplaceClientHandler):
         dep_dirs.append(packages_path)
 
         return [path for path in dep_dirs if os.path.isdir(path)]
-
-    @classmethod
-    def _plugin_msg(cls, msg: str) -> str:
-        return "{}: {}".format(cls.package_name, msg)
-
-    @classmethod
-    def _console_msg(cls, msg: str) -> None:
-        print(cls._plugin_msg(msg))
-
-    @classmethod
-    def _error_msg(cls, msg: str) -> None:
-        sublime.error_message(cls._plugin_msg(msg))
-
-    @classmethod
-    def _status_msg(cls, msg: str) -> None:
-        sublime.status_message(cls._plugin_msg(msg))
