@@ -9,7 +9,7 @@ from .helpers.plugin_message import status_msg
 from .helpers.settings import get_setting
 from .helpers.utils import dotted_get, unique
 from .helpers.vs_marketplace_lsp_utils import VsMarketplaceClientHandler
-from .helpers.vs_marketplace_lsp_utils.decorators import as_notification_handler
+from .helpers.vs_marketplace_lsp_utils.client_handler_decorator import as_notification_handler
 from .helpers.vs_marketplace_lsp_utils.vscode_settings import configure_lsp_like_vscode
 
 

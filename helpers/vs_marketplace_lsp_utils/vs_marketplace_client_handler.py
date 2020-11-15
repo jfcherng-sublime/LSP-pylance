@@ -1,3 +1,4 @@
+from .client_handler_decorator import HANDLER_MARK_NOTIFICATION, HANDLER_MARK_REQUEST
 from .server_vs_marketplace_resource import get_server_vs_marketplace_resource_for_package
 from .server_vs_marketplace_resource import ServerVsMarketplaceResource
 from .vscode_settings import configure_server_settings_like_vscode
@@ -180,12 +181,12 @@ class VsMarketplaceClientHandler(LanguageHandler):
 
     def _register_custom_server_event_handlers(self, api: ApiWrapper) -> None:
         for _, func in inspect.getmembers(self, predicate=inspect.isroutine):
-            event_name = getattr(func, "__notification_event_name", None)  # type: Optional[str]
-            if event_name:
+            event_names = getattr(func, HANDLER_MARK_NOTIFICATION, [])  # type: List[str]
+            for event_name in event_names:
                 api.on_notification(event_name, func)
 
-            event_name = getattr(func, "__request_event_name", None)  # type: Optional[str]
-            if event_name:
+            event_names = getattr(func, HANDLER_MARK_REQUEST, [])  # type: List[str]
+            for event_name in event_names:
                 api.on_request(event_name, func)
 
     @classmethod
