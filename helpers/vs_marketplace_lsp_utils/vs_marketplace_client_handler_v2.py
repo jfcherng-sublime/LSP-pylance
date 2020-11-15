@@ -8,6 +8,7 @@ from LSP.plugin import register_plugin
 from LSP.plugin import Session
 from LSP.plugin import unregister_plugin
 from LSP.plugin import WorkspaceFolder
+from LSP.plugin.core.types import ResolvedStartupConfig
 from LSP.plugin.core.typing import Any, Dict, List, Optional, Tuple
 from lsp_utils.npm_client_handler_v2 import ApiWrapper
 import inspect
@@ -106,10 +107,6 @@ class VsMarketplaceClientHandler(AbstractPlugin):
             settings_dict[key] = settings.get(key, default)
 
         cls.on_client_configuration_ready(settings_dict)
-
-        if cls.pretend_vscode:
-            configure_server_settings_like_vscode(settings_dict)
-
         for key in CLIENT_SETTING_KEYS.keys():
             settings.set(key, settings_dict[key])
 
@@ -133,6 +130,20 @@ class VsMarketplaceClientHandler(AbstractPlugin):
             else:
                 upgraded_list.append(language)
         return upgraded_list
+
+    @classmethod
+    def on_pre_start(
+        cls,
+        window: sublime.Window,
+        initiating_view: sublime.View,
+        workspace_folders: List[WorkspaceFolder],
+        resolved: ResolvedStartupConfig,
+    ) -> Optional[str]:
+        if cls.pretend_vscode:
+            configure_server_settings_like_vscode(resolved)
+
+            if not resolved.command:
+                resolved.command = cls._default_launch_command()
 
     @classmethod
     def get_binary_arguments(cls) -> List[str]:
@@ -193,9 +204,6 @@ class VsMarketplaceClientHandler(AbstractPlugin):
             return "{}: Error installing server dependencies.".format(cls.package_name)
         if not cls.__server.ready:
             return "{}: Server installation in progress...".format(cls.package_name)
-        # Lazily update command after server has initialized if not set manually by the user.
-        if not configuration.command:
-            configuration.command = cls._default_launch_command()
         return None
 
     def __init__(self, weaksession: "weakref.ref[Session]") -> None:
