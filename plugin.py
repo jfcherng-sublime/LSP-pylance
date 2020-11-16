@@ -1,12 +1,13 @@
 from .consts import SERVER_BINARY_PATH, SERVER_VERSION
+from .helpers.dotted import Dottedable, create_dottable, dotted_get, dotted_set
 from .helpers.plugin_message import status_msg
 from .helpers.settings import get_setting
-from .helpers.utils import dotted_get, dotted_set, unique
+from .helpers.utils import unique
 from .helpers.vs_marketplace_lsp_utils import VsMarketplaceClientHandler
 from .helpers.vs_marketplace_lsp_utils.client_handler_decorator import as_notification_handler
 from .helpers.vs_marketplace_lsp_utils.vscode_settings import configure_lsp_like_vscode
 from LSP.plugin.core.types import DottedDict
-from typing import Any, Dict, List, Tuple, Union
+from typing import Any, Dict, List, Tuple
 import os
 import sublime
 import sys
@@ -65,26 +66,28 @@ class LspPylancePlugin(VsMarketplaceClientHandler):
     def on_workspace_did_change_configuration(self, settings: DottedDict) -> None:
         super().on_workspace_did_change_configuration(settings)
 
+        d = create_dottable(settings)
+
         if get_setting("dev_environment") == "sublime_text":
-            self.revise_extra_paths(settings, self.key_extraPaths)
+            self.inject_extra_paths_st(d, self.key_extraPaths)
 
     def on_workspace_configuration(self, params: Dict, configuration: Dict[str, Any]) -> None:
         super().on_workspace_configuration(params, configuration)
 
+        d = create_dottable(configuration)
         section = params.get("section", "")
 
         if self.key_extraPaths.startswith(section) and get_setting("dev_environment") == "sublime_text":
-            key_extraPaths = self.key_extraPaths[len(section) :].lstrip(".")
-            self.revise_extra_paths(configuration, key_extraPaths)
+            self.inject_extra_paths_st(d, self.key_extraPaths[len(section) :].lstrip("."))
 
     @classmethod
     def on_settings_read(cls, settings: sublime.Settings) -> bool:
         super().on_settings_read(settings)
 
+        d = create_dottable(settings)
+
         if lsp_version < (1, 0, 0) and settings.get("dev_environment") == "sublime_text":  # type: ignore
-            server_settings = settings.get("settings", {})  # type: Dict[str, Any]
-            cls.revise_extra_paths(server_settings, cls.key_extraPaths)
-            settings.set("settings", server_settings)
+            cls.inject_extra_paths_st(d, "settings." + cls.key_extraPaths)
 
         return False
 
@@ -116,11 +119,7 @@ class LspPylancePlugin(VsMarketplaceClientHandler):
     # -------------- #
 
     @classmethod
-    def revise_extra_paths(
-        cls,
-        settings: Union[Dict[str, Any], DottedDict, sublime.Settings],
-        key_extraPaths: str,
-    ) -> None:
+    def inject_extra_paths_st(cls, settings: Dottedable, key_extraPaths: str) -> None:
         extraPaths = dotted_get(settings, key_extraPaths, [])  # type: List[str]
 
         extraPaths.append("$server_directory_path/_resources/typings")

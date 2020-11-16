@@ -1,8 +1,6 @@
-import sublime
-
+from .dotted import dotted_get
 from typing import Any, Optional
-
-from .utils import dotted_get
+import sublime
 
 
 def get_package_name() -> str:
