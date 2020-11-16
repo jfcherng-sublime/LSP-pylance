@@ -1,9 +1,9 @@
-from LSP.plugin.core.typing import Any, Callable, Dict, Iterable, Union
+from LSP.plugin.core.typing import Any, Callable, Iterable, Union
 
 
 # the first argument is always "self"
-T_NOTIFICATION_HANDLER = Callable[[Any, Dict[str, Any]], None]
-T_REQUEST_HANDLER = Callable[[Any, Dict[str, Any]], None]
+T_NOTIFICATION_HANDLER = Callable[[Any, Any], None]
+T_REQUEST_HANDLER = Callable[[Any, Any], None]
 
 HANDLER_MARK_NOTIFICATION = "__event_names_notification"
 HANDLER_MARK_REQUEST = "__event_names_request"

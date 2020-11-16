@@ -94,6 +94,10 @@ class LspPylancePlugin(VsMarketplaceClientHandler):
                 first_run=" (first run)" if dotted_get(measurements, "isFirstRun") else "",
             )
 
+    @as_notification_handler("workspace/semanticTokens/refresh")
+    def nh_workspace_semanticTokens_refresh(self, params: List[Any]) -> None:
+        pass
+
     # -------------- #
     # custom methods #
     # -------------- #
