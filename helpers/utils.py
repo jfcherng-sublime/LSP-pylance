@@ -3,6 +3,18 @@ import sublime
 
 from typing import Any, Iterable, Iterator, List, Optional, TypeVar, Union
 
+try:
+    from LSP.plugin.core.types import DottedDict
+except ImportError:
+
+    class DottedDict:
+        def get(self, *args, **kwargs):
+            pass
+
+        def set(self, *args, **kwargs):
+            pass
+
+
 _T = TypeVar("_T")
 
 
@@ -30,13 +42,17 @@ def dotted_get(var: Any, dotted: str, default: Optional[Any] = None) -> Any:
     try:
         for key in keys:
             if isinstance(var, sublime.Settings):
-                if var.has(key):
-                    var = var.get(key)
-                else:
+                key = keys.pop(0)
+
+                if not var.has(key):
                     return default
+
+                var = var.get(key)
+            elif isinstance(var, DottedDict):
+                var = var.get(key)
             elif isinstance(var, dict):
                 var = var[key]
-            elif isinstance(var, (list, tuple, bytes, bytearray)):
+            elif isinstance(var, (list, tuple)):
                 var = var[int(key)]
             else:
                 var = getattr(var, key)
@@ -58,45 +74,29 @@ def dotted_set(var: Any, dotted: str, value: Any) -> None:
     keys = dotted_string_to_keys(dotted)
     last_key = keys.pop()
 
-    for key in keys:
-        if isinstance(var, dict):
+    for idx, key in enumerate(keys):
+        if isinstance(var, sublime.Settings):
+            rest_keys = keys[idx:] + [last_key]
+            dotted_set_settings(var, keys_to_dotted_string(rest_keys), value)
+            return
+        elif isinstance(var, (dict, DottedDict)):
             var = var.get(key)
         elif isinstance(var, (list, tuple)):
             var = var[int(key)]
         else:
             var = getattr(var, key)
 
-    if isinstance(var, dict):
+    # handle the last key, assign the actual value
+    if isinstance(var, sublime.Settings):
+        dotted_set_settings(var, last_key, value)
+    elif isinstance(var, DottedDict):
+        var.set(last_key, value)
+    elif isinstance(var, dict):
         var[last_key] = value
     elif isinstance(var, (list, tuple)):
         var[int(last_key)] = value  # type: ignore
     else:
         setattr(var, last_key, value)
-
-
-def dotted_get_settings(settings: sublime.Settings, dotted: str, default: Optional[Any] = None) -> Any:
-    """
-    @brief Get the value from the sublime.Settings object with dotted notation.
-
-    @param settings The sublime.Settings object
-    @param dotted   The dotted
-    @param default  The default
-
-    @return The value or the default if dotted not found
-    """
-
-    keys = dotted_string_to_keys(dotted)
-
-    try:
-        if not settings.has(keys[0]):
-            return default
-
-        top_item = settings.get(keys[0])  # this is a copy, not reference
-        sub_dotted = keys_to_dotted_string(keys[1:])
-
-        return dotted_get(top_item, sub_dotted, default) if sub_dotted else top_item
-    except Exception:
-        return default
 
 
 def dotted_set_settings(settings: sublime.Settings, dotted: str, value: Any) -> None:

@@ -1,16 +1,20 @@
+from .consts import SERVER_BINARY_PATH, SERVER_VERSION
+from .helpers.plugin_message import status_msg
+from .helpers.settings import get_setting
+from .helpers.utils import dotted_get, dotted_set, unique
+from .helpers.vs_marketplace_lsp_utils import VsMarketplaceClientHandler
+from .helpers.vs_marketplace_lsp_utils.client_handler_decorator import as_notification_handler
+from .helpers.vs_marketplace_lsp_utils.vscode_settings import configure_lsp_like_vscode
+from LSP.plugin.core.types import DottedDict
+from typing import Any, Dict, List, Tuple, Union
 import os
 import sublime
 import sys
 
-from typing import Any, Dict, List, Tuple
-
-from .consts import SERVER_BINARY_PATH, SERVER_VERSION
-from .helpers.plugin_message import status_msg
-from .helpers.settings import get_setting
-from .helpers.utils import dotted_get, unique
-from .helpers.vs_marketplace_lsp_utils import VsMarketplaceClientHandler
-from .helpers.vs_marketplace_lsp_utils.client_handler_decorator import as_notification_handler
-from .helpers.vs_marketplace_lsp_utils.vscode_settings import configure_lsp_like_vscode
+try:
+    from LSP.plugin import __version__ as lsp_version
+except ImportError:
+    lsp_version = (0, 0, 0)
 
 
 def plugin_loaded() -> None:
@@ -52,25 +56,34 @@ class LspPylancePlugin(VsMarketplaceClientHandler):
         "python.removeUnusedImport",
     ]
 
+    key_extraPaths = "python.analysis.extraPaths"
+
     @classmethod
     def minimum_node_version(cls) -> Tuple[int, int, int]:
         return (12, 0, 0)
+
+    def on_workspace_did_change_configuration(self, settings: DottedDict) -> None:
+        super().on_workspace_did_change_configuration(settings)
+
+        if get_setting("dev_environment") == "sublime_text":
+            self.revise_extra_paths(settings, self.key_extraPaths)
+
+    def on_workspace_configuration(self, params: Dict, configuration: Dict[str, Any]) -> None:
+        super().on_workspace_configuration(params, configuration)
+
+        section = params.get("section", "")
+
+        if self.key_extraPaths.startswith(section) and get_setting("dev_environment") == "sublime_text":
+            key_extraPaths = self.key_extraPaths[len(section) :].lstrip(".")
+            self.revise_extra_paths(configuration, key_extraPaths)
 
     @classmethod
     def on_settings_read(cls, settings: sublime.Settings) -> bool:
         super().on_settings_read(settings)
 
-        if settings.get("dev_environment") == "sublime_text":
+        if lsp_version < (1, 0, 0) and settings.get("dev_environment") == "sublime_text":  # type: ignore
             server_settings = settings.get("settings", {})  # type: Dict[str, Any]
-
-            # add package dependencies into "python.analysis.extraPaths"
-            extraPaths = server_settings.get("python.analysis.extraPaths", [])  # type: List[str]
-            extraPaths.append("$server_directory_path/_resources/typings")
-            extraPaths.extend(cls.find_package_dependency_dirs())
-            # sometimes I will just extract .sublime-package files
-            extraPaths.append(sublime.installed_packages_path())
-            server_settings["python.analysis.extraPaths"] = list(unique(extraPaths, stable=True))
-
+            cls.revise_extra_paths(server_settings, cls.key_extraPaths)
             settings.set("settings", server_settings)
 
         return False
@@ -101,6 +114,20 @@ class LspPylancePlugin(VsMarketplaceClientHandler):
     # -------------- #
     # custom methods #
     # -------------- #
+
+    @classmethod
+    def revise_extra_paths(
+        cls,
+        settings: Union[Dict[str, Any], DottedDict, sublime.Settings],
+        key_extraPaths: str,
+    ) -> None:
+        extraPaths = dotted_get(settings, key_extraPaths, [])  # type: List[str]
+
+        extraPaths.append("$server_directory_path/_resources/typings")
+        extraPaths.extend(cls.find_package_dependency_dirs())
+        extraPaths.append(sublime.installed_packages_path())
+
+        dotted_set(settings, key_extraPaths, list(unique(extraPaths, stable=True)))
 
     @staticmethod
     def find_package_dependency_dirs() -> List[str]:
