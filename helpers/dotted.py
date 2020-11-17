@@ -1,16 +1,8 @@
 from abc import ABCMeta, abstractmethod
 from typing import Any, Generic, List, Optional, TypeVar, Union
+from LSP.plugin.core.types import DottedDict
 import re
 import sublime
-
-
-try:
-    from LSP.plugin.core.types import DottedDict
-except ImportError:
-
-    class DottedDict:
-        def __getattr__(self, attr: str) -> Any:
-            pass
 
 
 try:
