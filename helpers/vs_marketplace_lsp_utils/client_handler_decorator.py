@@ -1,35 +1,35 @@
-from LSP.plugin.core.typing import Any, Callable, Dict, Iterable, Union
+from LSP.plugin.core.typing import Any, Callable, Iterable, Union
 
 
 # the first argument is always "self"
-T_NOTIFICATION_HANDLER = Callable[[Any, Dict[str, Any]], None]
-T_REQUEST_HANDLER = Callable[[Any, Dict[str, Any]], None]
+T_HANDLER = Callable[[Any, Any], None]
+T_SERVER_EVENTS = Union[str, Iterable[str]]
 
-HANDLER_MARK_NOTIFICATION = "__event_names_notification"
-HANDLER_MARK_REQUEST = "__event_names_request"
+HANDLER_MARKS = {
+    "notification": "__handle_notification_events",
+    "request": "__handle_request_events",
+}
 
 
-def as_notification_handler(
-    event_names: Union[str, Iterable[str]]
-) -> Callable[[T_NOTIFICATION_HANDLER], T_NOTIFICATION_HANDLER]:
-    """ Marks the decorated function as a handler for the notification event. """
+def as_handler(client_event: str, server_events: T_SERVER_EVENTS) -> Callable[[T_HANDLER], T_HANDLER]:
+    """ Marks the decorated function as a event handler. """
 
-    event_names = [event_names] if isinstance(event_names, str) else list(event_names)
+    server_events = [server_events] if isinstance(server_events, str) else list(server_events)
 
-    def decorator(func: T_NOTIFICATION_HANDLER) -> T_NOTIFICATION_HANDLER:
-        setattr(func, HANDLER_MARK_NOTIFICATION, event_names)
+    def decorator(func: T_HANDLER) -> T_HANDLER:
+        setattr(func, HANDLER_MARKS[client_event], server_events)
         return func
 
     return decorator
 
 
-def as_request_handler(event_names: Union[str, Iterable[str]]) -> Callable[[T_REQUEST_HANDLER], T_REQUEST_HANDLER]:
-    """ Marks the decorated function as a handler for the request event. """
+def as_notification_handler(server_events: T_SERVER_EVENTS) -> Callable[[T_HANDLER], T_HANDLER]:
+    """ Marks the decorated function as a "notification" event handler. """
 
-    event_names = [event_names] if isinstance(event_names, str) else list(event_names)
+    return as_handler("notification", server_events)
 
-    def decorator(func: T_REQUEST_HANDLER) -> T_REQUEST_HANDLER:
-        setattr(func, HANDLER_MARK_REQUEST, event_names)
-        return func
 
-    return decorator
+def as_request_handler(server_events: T_SERVER_EVENTS) -> Callable[[T_HANDLER], T_HANDLER]:
+    """ Marks the decorated function as a "request" event handler. """
+
+    return as_handler("request", server_events)
