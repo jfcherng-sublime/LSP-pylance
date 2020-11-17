@@ -122,7 +122,7 @@ class LspPylancePlugin(VsMarketplaceClientHandler):
     def inject_extra_paths_st(cls, settings: Dottedable, key_extraPaths: str) -> None:
         extraPaths = dotted_get(settings, key_extraPaths, [])  # type: List[str]
 
-        extraPaths.append("$server_directory_path/_resources/typings")
+        extraPaths.append("{}/_resources/typings".format(cls.server_directory_path() or "$server_directory_path"))
         extraPaths.extend(cls.find_package_dependency_dirs())
         extraPaths.append(sublime.installed_packages_path())
 
