@@ -153,7 +153,7 @@ class VsMarketplaceClientHandler(AbstractPlugin):
         return ["--stdio"] if cls.execute_with_node else []
 
     @classmethod
-    def on_settings_read(cls, settings: sublime.Settings):
+    def on_settings_read(cls, settings: sublime.Settings) -> bool:
         """
         Called when package settings were read. Receives a `sublime.Settings` object.
 
