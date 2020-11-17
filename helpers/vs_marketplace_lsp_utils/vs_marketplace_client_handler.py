@@ -1,4 +1,4 @@
-from .client_handler_decorator import HANDLER_MARK_NOTIFICATION, HANDLER_MARK_REQUEST
+from .client_handler_decorator import HANDLER_MARKS
 from .server_vs_marketplace_resource import get_server_vs_marketplace_resource_for_package
 from .server_vs_marketplace_resource import ServerVsMarketplaceResource
 from .vscode_settings import configure_server_settings_like_vscode
@@ -180,14 +180,25 @@ class VsMarketplaceClientHandler(LanguageHandler):
     # -------------- #
 
     def _register_custom_server_event_handlers(self, api: ApiWrapper) -> None:
-        for _, func in inspect.getmembers(self, predicate=inspect.isroutine):
-            event_names = getattr(func, HANDLER_MARK_NOTIFICATION, [])  # type: List[str]
-            for event_name in event_names:
-                api.on_notification(event_name, func)
+        """
+        Register decorator-style custom event handlers.
 
-            event_names = getattr(func, HANDLER_MARK_REQUEST, [])  # type: List[str]
-            for event_name in event_names:
-                api.on_request(event_name, func)
+        This method works as following steps:
+
+        1. Scan through all methods of this object.
+        2. If a method is decorated, it will has a "handler mark" attribute which is put by the decorator.
+        3. Register the method with wanted events, which are stored in the "handler mark" attribute.
+
+        :param api: The API instance for interacting with the server.
+        """
+        for _, func in inspect.getmembers(self, predicate=inspect.isroutine):
+            # client_event is like "notification", "request"
+            for client_event, handler_mark in HANDLER_MARKS.items():
+                event_registrator = getattr(api, "on_" + client_event, None)
+                if callable(event_registrator):
+                    server_events = getattr(func, handler_mark, [])  # type: List[str]
+                    for server_event in server_events:
+                        event_registrator(server_event, func)
 
     @classmethod
     def _default_launch_command(cls) -> List[str]:
