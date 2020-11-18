@@ -2,10 +2,10 @@ from typing import Iterable, Iterator, TypeVar, Union
 import re
 
 
-_T = TypeVar("_T")
+T = TypeVar("T")
 
 
-def unique(it: Iterable[_T], stable: bool = False) -> Iterator[_T]:
+def unique(it: Iterable[T], stable: bool = False) -> Iterator[T]:
     """
     Generates a collection of unique items from the iterable.
 

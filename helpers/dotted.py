@@ -13,7 +13,7 @@ except ImportError:
         pass
 
 
-_T = TypeVar("_T")
+T = TypeVar("T")
 
 
 class DottedUnreachableException(Exception):
@@ -21,7 +21,7 @@ class DottedUnreachableException(Exception):
         super().__init__('Path "{}" is unreachable...'.format(dotted))
 
 
-class Dottedable(Generic[_T], metaclass=ABCMeta):
+class Dottedable(Generic[T], metaclass=ABCMeta):
     @abstractmethod
     def dotted_get(self, dotted: Optional[str], default: Optional[Any] = None) -> Any:
         pass
@@ -31,10 +31,10 @@ class Dottedable(Generic[_T], metaclass=ABCMeta):
         pass
 
     @property
-    def wrapped(self) -> _T:
+    def wrapped(self) -> T:
         return self._wrapped
 
-    def __init__(self, wrapped: _T, *args, **kwargs) -> None:
+    def __init__(self, wrapped: T, *args, **kwargs) -> None:
         self._wrapped = wrapped
 
     def d2k(self, dotted: str) -> List[str]:
@@ -208,7 +208,7 @@ def dotted_set(var: Any, dotted: str, value: Any) -> None:
 
 def keys_get_native(var: Union[dict, list, tuple], keys: List[str], default: Optional[Any]) -> Any:
     try:
-        # should raise an exception if any key doesn'_t exist so returns the default
+        # should raise an exception if any key doesn't exist so returns the default
         for key in keys:
             if isinstance(var, dict):
                 var = var[key]
