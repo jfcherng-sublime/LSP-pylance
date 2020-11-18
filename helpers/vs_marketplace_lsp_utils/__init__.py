@@ -1,11 +1,4 @@
-try:
-    from LSP.plugin import __version__ as lsp_version
-except ImportError:
-    lsp_version = (0, 0, 0)
-
-from lsp_utils.api_wrapper import ApiWrapperInterface
-
-from .server_vs_marketplace_resource import ServerVsMarketplaceResource
+from LSP.plugin import __version__ as lsp_version
 
 if lsp_version >= (1, 0, 0):  # type: ignore
     # ST 4
