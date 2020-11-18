@@ -4,7 +4,7 @@ from .helpers.plugin_message import status_msg
 from .helpers.settings import get_setting
 from .helpers.utils import unique
 from .helpers.vs_marketplace_lsp_utils import VsMarketplaceClientHandler
-from .helpers.vs_marketplace_lsp_utils.client_handler_decorator import as_notification_handler
+from .helpers.vs_marketplace_lsp_utils import notification_handler
 from .helpers.vs_marketplace_lsp_utils.vscode_settings import configure_lsp_like_vscode
 from LSP.plugin import __version__ as lsp_version
 from LSP.plugin.core.types import DottedDict
@@ -91,7 +91,7 @@ class LspPylancePlugin(VsMarketplaceClientHandler):
     # handlers #
     # -------- #
 
-    @as_notification_handler("telemetry/event")
+    @notification_handler("telemetry/event")
     def nh_telemetry_event(self, params: Dict[str, Any]) -> None:
         """ Handles notification event: `telemetry/event` """
 
@@ -106,7 +106,7 @@ class LspPylancePlugin(VsMarketplaceClientHandler):
                 first_run=" (first run)" if measurements.get("isFirstRun") else "",
             )
 
-    @as_notification_handler("workspace/semanticTokens/refresh")
+    @notification_handler("workspace/semanticTokens/refresh")
     def nh_workspace_semanticTokens_refresh(self, params: List[Any]) -> None:
         pass
 

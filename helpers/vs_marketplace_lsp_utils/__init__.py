@@ -1,4 +1,7 @@
+from .client_handler_decorator import notification_handler
+from .client_handler_decorator import request_handler
 from LSP.plugin import __version__ as lsp_version
+from lsp_utils.api_wrapper import ApiWrapperInterface
 
 if lsp_version >= (1, 0, 0):  # type: ignore
     # ST 4
@@ -11,4 +14,7 @@ __all__ = [
     "ApiWrapperInterface",
     "ServerVsMarketplaceResource",
     "VsMarketplaceClientHandler",
+    # decorator-related
+    "notification_handler",
+    "request_handler",
 ]

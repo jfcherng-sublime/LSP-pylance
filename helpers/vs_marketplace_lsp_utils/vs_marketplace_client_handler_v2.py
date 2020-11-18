@@ -1,4 +1,4 @@
-from .client_handler_decorator import HANDLER_MARKS
+from .client_handler_decorator import register_decorated_handlers
 from .server_vs_marketplace_resource import get_server_vs_marketplace_resource_for_package
 from .server_vs_marketplace_resource import ServerVsMarketplaceResource
 from .vscode_settings import configure_server_settings_like_vscode
@@ -11,7 +11,6 @@ from LSP.plugin import WorkspaceFolder
 from LSP.plugin.core.types import ResolvedStartupConfig
 from LSP.plugin.core.typing import Any, Dict, List, Optional, Tuple
 from lsp_utils.npm_client_handler_v2 import ApiWrapper
-import inspect
 import os
 import shutil
 import sublime
@@ -212,7 +211,7 @@ class VsMarketplaceClientHandler(AbstractPlugin):
             return
 
         api = ApiWrapper(self)
-        self._register_custom_server_event_handlers(api)
+        register_decorated_handlers(self, api)
         self.on_ready(api)
 
     def on_ready(self, api: ApiWrapper) -> None:
@@ -221,27 +220,6 @@ class VsMarketplaceClientHandler(AbstractPlugin):
     # -------------- #
     # custom methods #
     # -------------- #
-
-    def _register_custom_server_event_handlers(self, api: ApiWrapper) -> None:
-        """
-        Register decorator-style custom event handlers.
-
-        This method works as following steps:
-
-        1. Scan through all methods of this object.
-        2. If a method is decorated, it will has a "handler mark" attribute which is put by the decorator.
-        3. Register the method with wanted events, which are stored in the "handler mark" attribute.
-
-        :param api: The API instance for interacting with the server.
-        """
-        for _, func in inspect.getmembers(self, predicate=inspect.isroutine):
-            # client_event is like "notification", "request"
-            for client_event, handler_mark in HANDLER_MARKS.items():
-                event_registrator = getattr(api, "on_" + client_event, None)
-                if callable(event_registrator):
-                    server_events = getattr(func, handler_mark, [])  # type: List[str]
-                    for server_event in server_events:
-                        event_registrator(server_event, func)
 
     @classmethod
     def _default_launch_command(cls) -> List[str]:
