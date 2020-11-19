@@ -95,15 +95,15 @@ class LspPylancePlugin(VsMarketplaceClientHandler):
     def nh_telemetry_event(self, params: Dict[str, Any]) -> None:
         """ Handles notification event: `telemetry/event` """
 
-        event_name = dotted_get(params, "EventName", "")
-        measurements = dotted_get(params, "Measurements", {})
+        event_name = params.get("EventName", "")
+        measurements = params.get("Measurements", {})
 
-        if event_name == "language_server/analysis_complete":
+        if event_name == "language_server/analysis_complete" and measurements.get("numFilesAnalyzed", -1) >= 0:
             return status_msg(
                 "{_}: Analysis {file_counts} files completed in {time_s:.3f} seconds.{first_run}",
                 file_counts="{numFilesAnalyzed}/{numFilesInProgram}".format_map(measurements),
-                time_s=dotted_get(measurements, "elapsedMs", 0) / 1000,
-                first_run=" (first run)" if dotted_get(measurements, "isFirstRun") else "",
+                time_s=measurements.get("elapsedMs", 0) / 1000,
+                first_run=" (first run)" if measurements.get("isFirstRun") else "",
             )
 
     @as_notification_handler("workspace/semanticTokens/refresh")
