@@ -1,4 +1,4 @@
-from LSP.plugin.core.typing import Any, Callable, List, Optional, TypeVar, Union
+from .typing import Any, Callable, List, Optional, TypeVar, Union
 from lsp_utils.api_wrapper import ApiWrapperInterface
 import inspect
 

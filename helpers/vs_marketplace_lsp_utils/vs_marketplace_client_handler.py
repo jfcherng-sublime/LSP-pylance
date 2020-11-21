@@ -1,11 +1,11 @@
 from .client_handler_decorator import register_decorated_handlers
 from .server_vs_marketplace_resource import get_server_vs_marketplace_resource_for_package
 from .server_vs_marketplace_resource import ServerVsMarketplaceResource
+from .typing import Any, Dict, List, Optional, Tuple
 from .vscode_settings import configure_server_settings_like_vscode
 from LSP.plugin.core.handlers import LanguageHandler
 from LSP.plugin.core.settings import ClientConfig
 from LSP.plugin.core.settings import read_client_config
-from LSP.plugin.core.typing import Any, Dict, List, Optional, Tuple
 from lsp_utils.npm_client_handler import ApiWrapper
 import os
 import shutil

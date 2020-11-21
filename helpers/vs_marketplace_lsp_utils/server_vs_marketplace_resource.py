@@ -1,5 +1,5 @@
+from .typing import List, Optional
 from .vscode_settings import VSCODE_CLIENTINFO
-from LSP.plugin.core.typing import List, Optional
 from lsp_utils.helpers import log_and_show_message
 from lsp_utils.helpers import SemanticVersion
 from lsp_utils.helpers import version_to_string
