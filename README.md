@@ -99,3 +99,10 @@ Take `extension/extension.bundle.js` as an example,
    ```
 
 1. If that code is triggered, you should be able to see the variable value in the "CRACK" output panel.
+
+## TODO
+
+As of the next ST 3 LSP release,
+
+- `TypeVar` is available. I guess we can always use `typing` from `LSP.plugin.core.typing`.
+- Refactor with latest `lsp_utils` features.
