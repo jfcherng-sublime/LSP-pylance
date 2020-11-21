@@ -1,6 +1,7 @@
-from .client_handler_decorator import HANDLER_MARKS
+from .client_handler_decorator import register_decorated_handlers
 from .server_vs_marketplace_resource import get_server_vs_marketplace_resource_for_package
 from .server_vs_marketplace_resource import ServerVsMarketplaceResource
+from .typing import Any, Dict, List, Optional, Tuple
 from .vscode_settings import configure_server_settings_like_vscode
 from LSP.plugin import AbstractPlugin
 from LSP.plugin import ClientConfig
@@ -8,9 +9,8 @@ from LSP.plugin import register_plugin
 from LSP.plugin import Session
 from LSP.plugin import unregister_plugin
 from LSP.plugin import WorkspaceFolder
-from LSP.plugin.core.typing import Any, Dict, List, Optional, Tuple
+from LSP.plugin.core.types import ResolvedStartupConfig
 from lsp_utils.npm_client_handler_v2 import ApiWrapper
-import inspect
 import os
 import shutil
 import sublime
@@ -60,6 +60,12 @@ class VsMarketplaceClientHandler(AbstractPlugin):
         return (12, 0, 0)
 
     @classmethod
+    def download_from(cls) -> str:
+        """ Can be `"marketplace"` or `"pvsc"` """
+
+        return "marketplace"
+
+    @classmethod
     def package_storage(cls) -> str:
         if cls.install_in_cache():
             storage_path = sublime.cache_path()
@@ -106,10 +112,6 @@ class VsMarketplaceClientHandler(AbstractPlugin):
             settings_dict[key] = settings.get(key, default)
 
         cls.on_client_configuration_ready(settings_dict)
-
-        if cls.pretend_vscode:
-            configure_server_settings_like_vscode(settings_dict)
-
         for key in CLIENT_SETTING_KEYS.keys():
             settings.set(key, settings_dict[key])
 
@@ -133,6 +135,20 @@ class VsMarketplaceClientHandler(AbstractPlugin):
             else:
                 upgraded_list.append(language)
         return upgraded_list
+
+    @classmethod
+    def on_pre_start(
+        cls,
+        window: sublime.Window,
+        initiating_view: sublime.View,
+        workspace_folders: List[WorkspaceFolder],
+        resolved: ResolvedStartupConfig,
+    ) -> Optional[str]:
+        if cls.pretend_vscode:
+            configure_server_settings_like_vscode(resolved)
+
+            if not resolved.command:
+                resolved.command = cls._default_launch_command()
 
     @classmethod
     def get_binary_arguments(cls) -> List[str]:
@@ -171,6 +187,7 @@ class VsMarketplaceClientHandler(AbstractPlugin):
                 cls.server_binary_path,
                 cls.package_storage(),
                 cls.minimum_node_version(),
+                cls.download_from(),
                 cls.resource_dirs,
             )
             if cls.__server:
@@ -193,9 +210,6 @@ class VsMarketplaceClientHandler(AbstractPlugin):
             return "{}: Error installing server dependencies.".format(cls.package_name)
         if not cls.__server.ready:
             return "{}: Server installation in progress...".format(cls.package_name)
-        # Lazily update command after server has initialized if not set manually by the user.
-        if not configuration.command:
-            configuration.command = cls._default_launch_command()
         return None
 
     def __init__(self, weaksession: "weakref.ref[Session]") -> None:
@@ -204,7 +218,7 @@ class VsMarketplaceClientHandler(AbstractPlugin):
             return
 
         api = ApiWrapper(self)
-        self._register_custom_server_event_handlers(api)
+        register_decorated_handlers(self, api)
         self.on_ready(api)
 
     def on_ready(self, api: ApiWrapper) -> None:
@@ -213,15 +227,6 @@ class VsMarketplaceClientHandler(AbstractPlugin):
     # -------------- #
     # custom methods #
     # -------------- #
-
-    def _register_custom_server_event_handlers(self, api: ApiWrapper) -> None:
-        for _, func in inspect.getmembers(self, predicate=inspect.isroutine):
-            for client_event, handler_mark in HANDLER_MARKS.items():
-                event_registrator = getattr(api, "on_" + client_event, None)
-                if callable(event_registrator):
-                    server_events = getattr(func, handler_mark, [])  # type: List[str]
-                    for server_event in server_events:
-                        event_registrator(server_event, func)
 
     @classmethod
     def _default_launch_command(cls) -> List[str]:

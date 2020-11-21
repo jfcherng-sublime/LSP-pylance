@@ -1,13 +1,12 @@
-from .client_handler_decorator import HANDLER_MARKS
+from .client_handler_decorator import register_decorated_handlers
 from .server_vs_marketplace_resource import get_server_vs_marketplace_resource_for_package
 from .server_vs_marketplace_resource import ServerVsMarketplaceResource
+from .typing import Any, Dict, List, Optional, Tuple
 from .vscode_settings import configure_server_settings_like_vscode
 from LSP.plugin.core.handlers import LanguageHandler
 from LSP.plugin.core.settings import ClientConfig
 from LSP.plugin.core.settings import read_client_config
-from LSP.plugin.core.typing import Any, Dict, List, Optional, Tuple
 from lsp_utils.npm_client_handler import ApiWrapper
-import inspect
 import os
 import shutil
 import sublime
@@ -59,6 +58,7 @@ class VsMarketplaceClientHandler(LanguageHandler):
                 cls.server_binary_path,
                 cls.package_storage(),
                 cls.minimum_node_version(),
+                cls.download_from(),
                 cls.resource_dirs,
             )
             if cls.__server and cls.__server.needs_installation():
@@ -76,6 +76,12 @@ class VsMarketplaceClientHandler(LanguageHandler):
     @classmethod
     def minimum_node_version(cls) -> Tuple[int, int, int]:
         return (12, 0, 0)
+
+    @classmethod
+    def download_from(cls) -> str:
+        """ Can be `"marketplace"` or `"pvsc"` """
+
+        return "marketplace"
 
     @classmethod
     def package_storage(cls) -> str:
@@ -169,7 +175,7 @@ class VsMarketplaceClientHandler(LanguageHandler):
         """
 
         api = ApiWrapper(client)
-        self._register_custom_server_event_handlers(api)
+        register_decorated_handlers(self, api)
         self.on_ready(api)
 
     def on_ready(self, api: ApiWrapper) -> None:
@@ -178,15 +184,6 @@ class VsMarketplaceClientHandler(LanguageHandler):
     # -------------- #
     # custom methods #
     # -------------- #
-
-    def _register_custom_server_event_handlers(self, api: ApiWrapper) -> None:
-        for _, func in inspect.getmembers(self, predicate=inspect.isroutine):
-            for client_event, handler_mark in HANDLER_MARKS.items():
-                event_registrator = getattr(api, "on_" + client_event, None)
-                if callable(event_registrator):
-                    server_events = getattr(func, handler_mark, [])  # type: List[str]
-                    for server_event in server_events:
-                        event_registrator(server_event, func)
 
     @classmethod
     def _default_launch_command(cls) -> List[str]:

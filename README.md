@@ -69,3 +69,33 @@ There are some ways to configure the package and the language server.
 
 - From `Preferences > Package Settings > LSP > Servers > LSP-pylance`
 - From the command palette `Preferences: LSP-pylance Settings`
+
+## How to Dump Variables from VSCode Extension
+
+Take `extension/extension.bundle.js` as an example,
+
+1. Beautify the obfuscated codes. (Online: https://beautifier.io/)
+1. At the beginning of the file, add a dedicated output channel:
+
+   ```js
+   // create an output channel named "CRACK"
+   // @see https://code.visualstudio.com/api/references/vscode-api#OutputChannel
+   const my_output_panel = require("vscode").window.createOutputChannel("CRACK");
+
+   const my_log = (variable) => {
+     if (typeof variable === "object") {
+       // otherwise, it may show boring "[Object Object]"
+       variable = JSON.stringify(variable);
+     }
+
+     my_output_panel.appendLine(variable);
+   };
+   ```
+
+1. Dump a variable:
+
+   ```js
+   my_log(variable);
+   ```
+
+1. If that code is triggered, you should be able to see the variable value in the "CRACK" output panel.

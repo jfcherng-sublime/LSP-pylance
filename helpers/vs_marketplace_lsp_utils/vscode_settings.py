@@ -1,8 +1,15 @@
+from .typing import Dict, Union
+from LSP.plugin.core import sessions
 import json
 import sublime
 
-from LSP.plugin.core import sessions
-from LSP.plugin.core.typing import Union
+try:
+    from LSP.plugin.core.types import ResolvedStartupConfig
+except ImportError:
+    # LSP for ST 3 doesn't have ResolvedStartupConfig
+    class ResolvedStartupConfig:
+        pass
+
 
 __all__ = [
     "configure_lsp_like_vscode",
@@ -35,19 +42,28 @@ def configure_lsp_like_vscode() -> None:
     _use_vscode_client_info()
 
 
-def configure_server_settings_like_vscode(settings: Union[sublime.Settings, dict]) -> None:
+def configure_server_settings_like_vscode(settings: Union[sublime.Settings, ResolvedStartupConfig, dict]) -> None:
     """ Modifies the given settings to make it like VSCode """
 
-    # if the user already has his own setup, we respect it
-    env = VSCODE_ENV.copy()
-    env.update(settings.get("env", {}))
+    env_vscode = VSCODE_ENV.copy()
 
     if isinstance(settings, sublime.Settings):
+        env = settings.get("env", {})  # this is actually a copy
+        env.update(env_vscode)
         settings.set("env", env)
         return
 
+    if isinstance(settings, ResolvedStartupConfig):
+        env = getattr(settings, "env")  # type: Dict[str, str]
+        env.update(env_vscode)
+        return
+
     if isinstance(settings, dict):
-        settings["env"] = env
+        if "env" not in settings:
+            settings["env"] = {}
+
+        env = settings["env"]  # type: Dict[str, str]
+        env.update(env_vscode)
         return
 
 

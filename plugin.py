@@ -1,16 +1,17 @@
+from .consts import SERVER_BINARY_PATH, SERVER_VERSION
+from .helpers.dotted import Dottedable, create_dottable, dotted_get, dotted_set
+from .helpers.plugin_message import status_msg
+from .helpers.settings import get_setting
+from .helpers.utils import unique
+from .helpers.vs_marketplace_lsp_utils import VsMarketplaceClientHandler
+from .helpers.vs_marketplace_lsp_utils import notification_handler
+from .helpers.vs_marketplace_lsp_utils.vscode_settings import configure_lsp_like_vscode
+from LSP.plugin import __version__ as lsp_version
+from LSP.plugin.core.types import DottedDict
+from typing import Any, Dict, List, Tuple
 import os
 import sublime
 import sys
-
-from typing import Any, Dict, List, Tuple
-
-from .consts import SERVER_BINARY_PATH, SERVER_VERSION
-from .helpers.plugin_message import status_msg
-from .helpers.settings import get_setting
-from .helpers.utils import dotted_get, unique
-from .helpers.vs_marketplace_lsp_utils import VsMarketplaceClientHandler
-from .helpers.vs_marketplace_lsp_utils.client_handler_decorator import as_notification_handler
-from .helpers.vs_marketplace_lsp_utils.vscode_settings import configure_lsp_like_vscode
 
 
 def plugin_loaded() -> None:
@@ -28,8 +29,8 @@ def plugin_unloaded() -> None:
 class LspPylancePlugin(VsMarketplaceClientHandler):
     package_name = "LSP-pylance"
 
-    # @see https://marketplace.visualstudio.com/items?itemName=ms-python.vscode-pylance
-    extension_uid = "ms-python.vscode-pylance"
+    # this InsiderChannel uid is dumped from Pylance 2020.11.2, extension.bundle.js
+    extension_uid = "pylance-insiders.vscode-pylance"
     extension_version = SERVER_VERSION
     server_binary_path = SERVER_BINARY_PATH
     execute_with_node = True
@@ -52,26 +53,41 @@ class LspPylancePlugin(VsMarketplaceClientHandler):
         "python.removeUnusedImport",
     ]
 
+    key_extraPaths = "python.analysis.extraPaths"
+
     @classmethod
     def minimum_node_version(cls) -> Tuple[int, int, int]:
         return (12, 0, 0)
 
     @classmethod
+    def download_from(cls) -> str:
+        return "pvsc"
+
+    def on_workspace_did_change_configuration(self, settings: DottedDict) -> None:
+        super().on_workspace_did_change_configuration(settings)
+
+        d = create_dottable(settings)
+
+        if get_setting("dev_environment") == "sublime_text":
+            self.inject_extra_paths_st(d, self.key_extraPaths)
+
+    def on_workspace_configuration(self, params: Dict, configuration: Dict[str, Any]) -> None:
+        super().on_workspace_configuration(params, configuration)
+
+        d = create_dottable(configuration)
+        section = params.get("section", "")
+
+        if self.key_extraPaths.startswith(section) and get_setting("dev_environment") == "sublime_text":
+            self.inject_extra_paths_st(d, self.key_extraPaths[len(section) :].lstrip("."))
+
+    @classmethod
     def on_settings_read(cls, settings: sublime.Settings) -> bool:
         super().on_settings_read(settings)
 
-        if settings.get("dev_environment") == "sublime_text":
-            server_settings = settings.get("settings", {})  # type: Dict[str, Any]
+        d = create_dottable(settings)
 
-            # add package dependencies into "python.analysis.extraPaths"
-            extraPaths = server_settings.get("python.analysis.extraPaths", [])  # type: List[str]
-            extraPaths.append("$server_directory_path/_resources/typings")
-            extraPaths.extend(cls.find_package_dependency_dirs())
-            # sometimes I will just extract .sublime-package files
-            extraPaths.append(sublime.installed_packages_path())
-            server_settings["python.analysis.extraPaths"] = list(unique(extraPaths, stable=True))
-
-            settings.set("settings", server_settings)
+        if lsp_version < (1, 0, 0) and settings.get("dev_environment") == "sublime_text":  # type: ignore
+            cls.inject_extra_paths_st(d, "settings." + cls.key_extraPaths)
 
         return False
 
@@ -79,7 +95,7 @@ class LspPylancePlugin(VsMarketplaceClientHandler):
     # handlers #
     # -------- #
 
-    @as_notification_handler("telemetry/event")
+    @notification_handler("telemetry/event")
     def nh_telemetry_event(self, params: Dict[str, Any]) -> None:
         """ Handles notification event: `telemetry/event` """
 
@@ -94,9 +110,23 @@ class LspPylancePlugin(VsMarketplaceClientHandler):
                 first_run=" (first run)" if measurements.get("isFirstRun") else "",
             )
 
+    @notification_handler("workspace/semanticTokens/refresh")
+    def nh_workspace_semanticTokens_refresh(self, params: List[Any]) -> None:
+        pass
+
     # -------------- #
     # custom methods #
     # -------------- #
+
+    @classmethod
+    def inject_extra_paths_st(cls, settings: Dottedable, key_extraPaths: str) -> None:
+        extraPaths = dotted_get(settings, key_extraPaths, [])  # type: List[str]
+
+        extraPaths.append("{}/_resources/typings".format(cls.server_directory_path() or "$server_directory_path"))
+        extraPaths.extend(cls.find_package_dependency_dirs())
+        extraPaths.append(sublime.installed_packages_path())
+
+        dotted_set(settings, key_extraPaths, list(unique(extraPaths, stable=True)))
 
     @staticmethod
     def find_package_dependency_dirs() -> List[str]:

@@ -1,4 +1,5 @@
-from LSP.plugin.core.typing import List, Optional
+from .typing import List, Optional
+from .vscode_settings import VSCODE_CLIENTINFO
 from lsp_utils.helpers import log_and_show_message
 from lsp_utils.helpers import SemanticVersion
 from lsp_utils.helpers import version_to_string
@@ -22,6 +23,7 @@ def get_server_vs_marketplace_resource_for_package(
     server_binary_path: str,
     package_storage: str,
     minimum_node_version: SemanticVersion,
+    download_from: str = "marketplace",
     resource_dirs: List[str] = [],
 ) -> Optional["ServerVsMarketplaceResource"]:
     if shutil.which("node") is None:
@@ -48,6 +50,7 @@ def get_server_vs_marketplace_resource_for_package(
         server_binary_path,
         package_storage,
         version_to_string(installed_node_version),
+        download_from,
         resource_dirs,
     )
 
@@ -66,12 +69,16 @@ class ServerVsMarketplaceResource:
     - extension_version = "2020.11.1"
     """
 
-    extension_urls = {
-        "download": "https://marketplace.visualstudio.com/_apis/public/gallery/publishers/{vendor}/vsextensions/{name}/{version}/vspackage",
-        "referer": "https://marketplace.visualstudio.com/items?itemName={vendor}.{name}",
+    templates = {
+        # the "marketplace" API has ratelimit...
+        "download_marketplace": "https://marketplace.visualstudio.com/_apis/public/gallery/publishers/{vendor}/vsextensions/{name}/{version}/vspackage",
+        "referer_marketplace": "https://marketplace.visualstudio.com/items?itemName={vendor}.{name}",
+        "user_agent_marketplace": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.66 Safari/537.36",
+        # ...
+        "download_pvsc": "https://pvsc.blob.core.windows.net/{vendor}/{name}-{version}.vsix",
+        "referer_pvsc": "",
+        "user_agent_pvsc": "VSCode " + VSCODE_CLIENTINFO["version"],
     }
-
-    user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.193 Safari/537.36 Edg/86.0.622.63"
 
     def __init__(
         self,
@@ -81,6 +88,7 @@ class ServerVsMarketplaceResource:
         server_binary_path: str,
         package_storage: str,
         node_version: str,
+        download_from: str = "marketplace",
         resource_dirs: List[str] = [],
     ) -> None:
         self._initialized = False
@@ -92,6 +100,7 @@ class ServerVsMarketplaceResource:
         self._binary_path = server_binary_path
         self._package_storage = package_storage
         self._node_version = node_version
+        self._download_place = download_from
         self._resource_dirs = resource_dirs.copy()
         self._activity_indicator = None
 
@@ -186,13 +195,15 @@ class ServerVsMarketplaceResource:
             ResourcePath(dir_src).copytree(dir_dst, exist_ok=True)  # type: ignore
 
     def _download_extension(self, save_vsix: bool = True) -> None:
+        url = self._expaned_templates("download_" + self._download_place) or ""
+
         try:
             req = urllib.request.Request(
-                url=self._get_expaneded_url("download"),
+                url=url,
                 headers={
                     "Accept-Encoding": "gzip, deflate",
-                    "Referer": self._get_expaneded_url("referer"),
-                    "User-Agent": self.user_agent,
+                    "Referer": self._expaned_templates("referer_" + self._download_place) or "",
+                    "User-Agent": self._expaned_templates("user_agent_" + self._download_place) or "",
                 },
             )
 
@@ -201,7 +212,7 @@ class ServerVsMarketplaceResource:
                 if resp.info().get("Content-Encoding") == "gzip":
                     resp_data = gzip.decompress(resp_data)
         except urllib.error.HTTPError as e:
-            return self._on_error("Unable to download the extension (HTTP code: {})".format(e.code))
+            return self._on_error('Unable to download the extension from "{}" (HTTP code: {})'.format(url, e.code))
         except urllib.error.ContentTooShortError:
             return self._on_error("Extension was downloaded imcompletely...")
 
@@ -217,10 +228,13 @@ class ServerVsMarketplaceResource:
         else:
             self._on_error("Preparation done but somehow the server binary path is not a file.")
 
-    def _get_expaneded_url(self, item: str) -> str:
+    def _expaned_templates(self, item: str) -> Optional[str]:
         extension_vendor, extension_name = self._extension_uid.split(".")[:2]
 
-        return self.extension_urls[item].format_map(
+        if item not in self.templates:
+            return None
+
+        return self.templates[item].format_map(
             {
                 "name": extension_name,
                 "vendor": extension_vendor,
