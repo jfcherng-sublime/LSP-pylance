@@ -60,6 +60,12 @@ class VsMarketplaceClientHandler(AbstractPlugin):
         return (12, 0, 0)
 
     @classmethod
+    def download_from(cls) -> str:
+        """ Can be `"marketplace"` or `"pvsc"` """
+
+        return "marketplace"
+
+    @classmethod
     def package_storage(cls) -> str:
         if cls.install_in_cache():
             storage_path = sublime.cache_path()
@@ -181,6 +187,7 @@ class VsMarketplaceClientHandler(AbstractPlugin):
                 cls.server_binary_path,
                 cls.package_storage(),
                 cls.minimum_node_version(),
+                cls.download_from(),
                 cls.resource_dirs,
             )
             if cls.__server:

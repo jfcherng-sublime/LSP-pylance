@@ -29,8 +29,8 @@ def plugin_unloaded() -> None:
 class LspPylancePlugin(VsMarketplaceClientHandler):
     package_name = "LSP-pylance"
 
-    # @see https://marketplace.visualstudio.com/items?itemName=ms-python.vscode-pylance
-    extension_uid = "ms-python.vscode-pylance"
+    # this InsiderChannel uid is dumped from Pylance 2020.11.2, extension.bundle.js
+    extension_uid = "pylance-insiders.vscode-pylance"
     extension_version = SERVER_VERSION
     server_binary_path = SERVER_BINARY_PATH
     execute_with_node = True
@@ -58,6 +58,10 @@ class LspPylancePlugin(VsMarketplaceClientHandler):
     @classmethod
     def minimum_node_version(cls) -> Tuple[int, int, int]:
         return (12, 0, 0)
+
+    @classmethod
+    def download_from(cls) -> str:
+        return "pvsc"
 
     def on_workspace_did_change_configuration(self, settings: DottedDict) -> None:
         super().on_workspace_did_change_configuration(settings)
