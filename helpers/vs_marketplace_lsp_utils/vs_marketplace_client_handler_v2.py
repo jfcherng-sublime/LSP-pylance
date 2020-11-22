@@ -1,15 +1,15 @@
 from .client_handler_decorator import register_decorated_handlers
 from .server_vs_marketplace_resource import get_server_vs_marketplace_resource_for_package
 from .server_vs_marketplace_resource import ServerVsMarketplaceResource
-from .typing import Any, Dict, List, Optional, Tuple
 from .vscode_settings import configure_server_settings_like_vscode
 from LSP.plugin import AbstractPlugin
 from LSP.plugin import ClientConfig
 from LSP.plugin import register_plugin
+from LSP.plugin import ResolvedStartupConfig
 from LSP.plugin import Session
 from LSP.plugin import unregister_plugin
 from LSP.plugin import WorkspaceFolder
-from LSP.plugin.core.types import ResolvedStartupConfig
+from LSP.plugin.core.typing import Any, Dict, List, Optional, Tuple
 from lsp_utils.npm_client_handler_v2 import ApiWrapper
 import os
 import shutil

@@ -1,12 +1,11 @@
 from abc import ABCMeta, abstractmethod
+from LSP.plugin import DottedDict
 from typing import Any, Generic, List, Optional, TypeVar, Union
-from LSP.plugin.core.types import DottedDict
 import re
 import sublime
 
-
 try:
-    from LSP.plugin.core.types import ResolvedStartupConfig
+    from LSP.plugin import ResolvedStartupConfig
 except ImportError:
     # LSP for ST 3 doesn't have ResolvedStartupConfig
     class ResolvedStartupConfig:

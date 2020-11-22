@@ -14,7 +14,6 @@ __all__ = [
     "ApiWrapperInterface",
     "ServerVsMarketplaceResource",
     "VsMarketplaceClientHandler",
-    # decorator-related
     "notification_handler",
     "request_handler",
 ]

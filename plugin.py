@@ -3,12 +3,12 @@ from .helpers.dotted import Dottedable, create_dottable, dotted_get, dotted_set
 from .helpers.plugin_message import status_msg
 from .helpers.settings import get_setting
 from .helpers.utils import unique
-from .helpers.vs_marketplace_lsp_utils import VsMarketplaceClientHandler
 from .helpers.vs_marketplace_lsp_utils import notification_handler
+from .helpers.vs_marketplace_lsp_utils import VsMarketplaceClientHandler
 from .helpers.vs_marketplace_lsp_utils.vscode_settings import configure_lsp_like_vscode
 from LSP.plugin import __version__ as lsp_version
-from LSP.plugin.core.types import DottedDict
-from typing import Any, Dict, List, Tuple
+from LSP.plugin import DottedDict
+from LSP.plugin.core.typing import Any, Dict, List, Tuple
 import os
 import sublime
 import sys

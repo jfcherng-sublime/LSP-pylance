@@ -1,5 +1,5 @@
-from .typing import Dict, Union
 from LSP.plugin.core import sessions
+from LSP.plugin.core.typing import Dict, Union
 import json
 import sublime
 
