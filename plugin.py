@@ -86,7 +86,7 @@ class LspPylancePlugin(VsMarketplaceClientHandler):
 
         d = create_dottable(settings)
 
-        if lsp_version < (1, 0, 0) and settings.get("dev_environment") == "sublime_text":  # type: ignore
+        if lsp_version < (1, 0, 0) and settings.get("dev_environment") == "sublime_text":
             cls.inject_extra_paths_st(d, "settings." + cls.key_extraPaths)
 
         return False
