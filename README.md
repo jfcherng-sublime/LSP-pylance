@@ -85,7 +85,7 @@ Take `extension/extension.bundle.js` as an example,
    const my_log = (variable) => {
      if (typeof variable === "object") {
        // otherwise, it may show boring "[Object Object]"
-       variable = JSON.stringify(variable);
+       variable = require("util").inspect(webpackConfig, false, null);
      }
 
      my_output_panel.appendLine(variable);
