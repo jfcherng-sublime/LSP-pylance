@@ -160,7 +160,7 @@ class ResolvedStartupConfigWrapper(Dottedable[ResolvedStartupConfig]):
         setattr(self._wrapped, top_key, top_item)
 
 
-def create_dottable(var: Any) -> Dottedable:
+def create_dottable(var: T) -> Dottedable[T]:
     if isinstance(var, Dottedable):
         return var
 
