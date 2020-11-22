@@ -1,4 +1,6 @@
-# version: 4093
+# This file is maintained on https://github.com/jfcherng-sublime/ST-API-stubs
+#
+# ST version: 4093
 
 from typing import (
     Any,
@@ -20,7 +22,7 @@ from typing_extensions import TypedDict
 # ----- #
 
 T = TypeVar("T")
-T_ExpandableVar = TypeVar("T_ExpandableVar", str, List[str], Dict[str, str])
+T_ExpandableVar = TypeVar("T_ExpandableVar", None, bool, int, float, str, Dict, List, Tuple)
 T_Layout = TypedDict(
     "T_Layout",
     {
@@ -1020,8 +1022,6 @@ class Edit:
 class Region:
     """ Represents an area of the buffer. Empty regions, where `a == b` are valid """
 
-    __slots__: List[str] = ["a", "b", "xpos"]
-
     a: int
     b: int
     xpos: int
@@ -1109,8 +1109,6 @@ class HistoricPosition:
     This is primarily useful for replaying changes to a document.
     """
 
-    __slots__: List[str] = ["pt", "row", "col", "col_utf16", "col_utf8"]
-
     pt: StPoint
     row: int
     col: int
@@ -1129,8 +1127,6 @@ class TextChange:
     Represents a change that occured to the text of a `View`.
     This is primarily useful for replaying changes to a document.
     """
-
-    __slots__: List[StStr] = ["a", "b", "len_utf16", "len_utf8", "str"]
 
     a: HistoricPosition
     b: HistoricPosition
@@ -2417,8 +2413,6 @@ class PhantomSet:
 
 
 class Html:
-    __slots__: List[str] = ["data"]
-
     data: Any
 
     def __init__(self, data: Any) -> None:
@@ -2617,8 +2611,6 @@ def find_syntax_for_file(path: str, first_line: str = "") -> "Syntax":
 
 
 class Syntax:
-    __slots__: List[str] = ["path", "name", "hidden", "scope"]
-
     path: str
     name: str
     hidden: bool
@@ -2635,8 +2627,6 @@ class Syntax:
 
 
 class QuickPanelItem:
-    __slots__: List[str] = ["trigger", "details", "annotation", "kind"]
-
     trigger: str
     details: str
     annotation: str
@@ -2656,8 +2646,6 @@ class QuickPanelItem:
 
 
 class SymbolRegion:
-    __slots__ = ["name", "region", "syntax", "type", "kind"]
-
     name: str
     region: Region
     syntax: Syntax
@@ -2672,8 +2660,6 @@ class SymbolRegion:
 
 
 class SymbolLocation:
-    __slots__ = ["path", "display_name", "row", "col", "syntax", "type", "kind"]
-
     path: str
     display_name: str
     row: int
