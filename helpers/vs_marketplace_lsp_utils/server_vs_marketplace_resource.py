@@ -71,13 +71,17 @@ class ServerVsMarketplaceResource:
 
     templates = {
         # the "marketplace" API has ratelimit...
-        "download_marketplace": "https://marketplace.visualstudio.com/_apis/public/gallery/publishers/{vendor}/vsextensions/{name}/{version}/vspackage",
-        "referer_marketplace": "https://marketplace.visualstudio.com/items?itemName={vendor}.{name}",
-        "user_agent_marketplace": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.66 Safari/537.36",
-        # ...
-        "download_pvsc": "https://pvsc.blob.core.windows.net/{vendor}/{name}-{version}.vsix",
-        "referer_pvsc": "",
-        "user_agent_pvsc": "VSCode " + VSCODE_CLIENTINFO["version"],
+        "marketplace": {
+            "download": "https://marketplace.visualstudio.com/_apis/public/gallery/publishers/{vendor}/vsextensions/{name}/{version}/vspackage",
+            "referer": "https://marketplace.visualstudio.com/items?itemName={vendor}.{name}",
+            "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.66 Safari/537.36",
+        },
+        # come from Pylance's obfuscated extension.bundle.js
+        "pvsc": {
+            "download": "https://pvsc.blob.core.windows.net/{vendor}/{name}-{version}.vsix",
+            "referer": "",
+            "user_agent": "VSCode " + VSCODE_CLIENTINFO["version"],
+        },
     }
 
     def __init__(
@@ -195,15 +199,15 @@ class ServerVsMarketplaceResource:
             ResourcePath(dir_src).copytree(dir_dst, exist_ok=True)  # type: ignore
 
     def _download_extension(self, save_vsix: bool = True) -> None:
-        url = self._expaned_templates("download_" + self._download_place) or ""
+        url = self._expaned_templates(self._download_place + ".download") or ""
 
         try:
             req = urllib.request.Request(
                 url=url,
                 headers={
                     "Accept-Encoding": "gzip, deflate",
-                    "Referer": self._expaned_templates("referer_" + self._download_place) or "",
-                    "User-Agent": self._expaned_templates("user_agent_" + self._download_place) or "",
+                    "Referer": self._expaned_templates(self._download_place + ".referer") or "",
+                    "User-Agent": self._expaned_templates(self._download_place + ".user_agent") or "",
                 },
             )
 
@@ -228,13 +232,22 @@ class ServerVsMarketplaceResource:
         else:
             self._on_error("Preparation done but somehow the server binary path is not a file.")
 
-    def _expaned_templates(self, item: str) -> Optional[str]:
+    def _expaned_templates(self, dotted: str, default: Optional[str] = None) -> Optional[str]:
         extension_vendor, extension_name = self._extension_uid.split(".")[:2]
 
-        if item not in self.templates:
-            return None
+        keys = dotted.split(".")
+        ret = self.templates
 
-        return self.templates[item].format_map(
+        try:
+            for key in keys:
+                ret = ret[key]
+        except KeyError:
+            return default
+
+        if not isinstance(ret, str):
+            return default
+
+        return ret.format_map(  # type: ignore
             {
                 "name": extension_name,
                 "vendor": extension_vendor,
