@@ -5,39 +5,43 @@ Python support for Sublime's LSP plugin provided through [Pylance](https://marke
 ## About Pylance
 
 From Microsoft's statement, Pylance is an enhanced version of [Pyright](https://github.com/microsoft/pyright).
-Apart from IntelliCode, which won't be available in ST, there are still other improvements.
+Apart from IntelliCode, which is not working, there are still other improvements.
 
-But actually, I don't know what Pylance has features that are not provided by
-[Pyright](https://github.com/microsoft/pyright) in other editors.
-[@faaizajaz](https://github.com/faaizajaz) spoke about some minor differences he found in
-[this comment](https://github.com/jfcherng-sublime/LSP-pylance/issues/2#issuecomment-716548465).
-You can peek [Pylance's changelog](https://marketplace.visualstudio.com/items/ms-python.vscode-pylance/changelog) as well.
+- Bundled stubs for: `django`, `jmespath`, `matplotlib`, `pandas`, `PIL`, `pygame`
+- Bundled native stubs for: `cv2`, `lxml`, `numpy`
+- [@faaizajaz](https://github.com/faaizajaz) spoke about some minor differences he found in
+  [this comment](https://github.com/jfcherng-sublime/LSP-pylance/issues/2#issuecomment-716548465).
+- See [Pylance's changelog](https://marketplace.visualstudio.com/items/ms-python.vscode-pylance/changelog).
 
 ## About IntelliCode
 
 Some interesting findings:
 
-- The [vsintellicode.modelDownloadPath](https://github.com/MicrosoftDocs/intellicode/issues/231#issuecomment-708129568) setting in VSCode.
-- The model file download link: https://prod.intellicode.vsengsaas.visualstudio.com/api/v1/model/common/python/intellisense-members/output/latest (Taken from https://github.com/MicrosoftDocs/intellicode/issues/93#issuecomment-490240914)
-- Potentially related LSP command: `view.run_command('lsp_execute', {"command_name":"python.intellicode.loadLanguageServerExtension"})`
+- The model file download link: the `output.blob.azureBlobStorage.readSasToken` section in
+  https://prod.intellicode.vsengsaas.visualstudio.com/api/v1/model/common/python/intellisense-members-lstm-pylance/output/latest
+- Potentially related LSP command:
+  `view.run_command('lsp_execute', {"command_name":"python.intellicode.loadLanguageServerExtension", "command_args":{"modelPath":"..."}})`
 
-  But this command results in unhandled Promise rejection:
+  But sending that command to Pylance results in a unhandled Promise rejection:
 
   ```text
-  LSP-pylance: (node:20292) UnhandledPromiseRejectionWarning: Error: Debug Failure. False expression.
-  LSP-pylance:     at _0x5f4b25.<anonymous> (C:\Users\XXX\AppData\Local\Sublime Text\Package Storage\LSP-pylance\ms-python.vscode-pylance~2020.11.0\extension\dist\server.bundle.js:1500:70)
+  :: --> LSP-pylance workspace/executeCommand(16): {'command': 'python.intellicode.loadLanguageServerExtension', 'arguments': {'modelPath': 'C:\\Users\\XXXXX\\AppData\\Local\\Sublime Text\\Package Storage\\LSP-pylance\\pylance-insiders.vscode-pylance~2020.11.3-pre.1\\_resources\\model\\E61945A9A512ED5E1A3EE3F1A2365B88F8FE_E4E9EADA96734F01970E616FAB2FAC19'}}
+  LSP-pylance: (node:16444) UnhandledPromiseRejectionWarning: Error: Debug Failure. False expression.
+  LSP-pylance:     at g.<anonymous> (C:\Users\XXXXX\AppData\Local\Sublime Text\Package Storage\LSP-pylance\pylance-insiders.vscode-pylance~2020.11.3-pre.1\extension\dist\server.bundle.js:1:76031)
   LSP-pylance:     at Generator.next (<anonymous>)
-  LSP-pylance:     at C:\Users\XXX\AppData\Local\Sublime Text\Package Storage\LSP-pylance\ms-python.vscode-pylance~2020.11.0\extension\dist\server.bundle.js:1405:103
+  LSP-pylance:     at C:\Users\XXXXX\AppData\Local\Sublime Text\Package Storage\LSP-pylance\pylance-insiders.vscode-pylance~2020.11.3-pre.1\extension\dist\server.bundle.js:1:72638
   LSP-pylance:     at new Promise (<anonymous>)
-  LSP-pylance:     at _0x30cadb (C:\Users\XXX\AppData\Local\Sublime Text\Package Storage\LSP-pylance\ms-python.vscode-pylance~2020.11.0\extension\dist\server.bundle.js:1376:28)
-  LSP-pylance:     at _0x5f4b25.executeCommand (C:\Users\XXX\AppData\Local\Sublime Text\Package Storage\LSP-pylance\ms-python.vscode-pylance~2020.11.0\extension\dist\server.bundle.js:1490:32)
-  LSP-pylance:     at _0x5ae44f.executeCommand (C:\Users\XXX\AppData\Local\Sublime Text\Package Storage\LSP-pylance\ms-python.vscode-pylance~2020.11.0\extension\dist\server.bundle.js:3000:200)
-  LSP-pylance:     at _0x5ae44f.<anonymous> (C:\Users\XXX\AppData\Local\Sublime Text\Package Storage\LSP-pylance\ms-python.vscode-pylance~2020.11.0\extension\dist\pyright.bundle.js:17811:46)
+  LSP-pylance:     at c (C:\Users\XXXXX\AppData\Local\Sublime Text\Package Storage\LSP-pylance\pylance-insiders.vscode-pylance~2020.11.3-pre.1\extension\dist\server.bundle.js:1:72279)
+  LSP-pylance:     at g.executeCommand (C:\Users\XXXXX\AppData\Local\Sublime Text\Package Storage\LSP-pylance\pylance-insiders.vscode-pylance~2020.11.3-pre.1\extension\dist\server.bundle.js:1:75672)
+  LSP-pylance:     at K.executeCommand (C:\Users\XXXXX\AppData\Local\Sublime Text\Package Storage\LSP-pylance\pylance-insiders.vscode-pylance~2020.11.3-pre.1\extension\dist\server.bundle.js:1:145631)
+  LSP-pylance:     at K.<anonymous> (C:\Users\XXXXX\AppData\Local\Sublime Text\Package Storage\LSP-pylance\pylance-insiders.vscode-pylance~2020.11.3-pre.1\extension\dist\pyright.bundle.js:1:581907)
   LSP-pylance:     at Generator.next (<anonymous>)
-  LSP-pylance:     at C:\Users\XXX\AppData\Local\Sublime Text\Package Storage\LSP-pylance\ms-python.vscode-pylance~2020.11.0\extension\dist\pyright.bundle.js:17513:49
-  LSP-pylance: (Use `node --trace-warnings ...` to show where the warning was created)
-  LSP-pylance: (node:20292) UnhandledPromiseRejectionWarning: Unhandled promise rejection. This error originated either by throwing inside of an async function without a catch block, or by rejecting a promise which was not handled with .catch(). To terminate the node process on unhandled promise rejection, use the CLI flag `--unhandled-rejections=strict` (see https://nodejs.org/api/cli.html#cli_unhandled_rejections_mode). (rejection id: 2)
+  LSP-pylance:     at C:\Users\XXXXX\AppData\Local\Sublime Text\Package Storage\LSP-pylance\pylance-insiders.vscode-pylance~2020.11.3-pre.1\extension\dist\pyright.bundle.js:1:569886
+  LSP-pylance: (node:16444) UnhandledPromiseRejectionWarning: Unhandled promise rejection. This error originated either by throwing inside of an async function without a catch block, or by rejecting a promise which was not handled with .catch(). To terminate the node process on unhandled promise rejection, use the CLI flag `--unhandled-rejections=strict` (see https://nodejs.org/api/cli.html#cli_unhandled_rejections_mode). (rejection id: 6)
   ```
+
+  I suspect that this is an incompatible node binding issue. `VSCode 1.15.1` uses `Node.js 12.14.1`.
+  I try to use `Node.js 12.14.1` on my local machine but in vain, the error is still the same.
 
 ## Disclaimer
 
@@ -78,17 +82,16 @@ Take `extension/extension.bundle.js` as an example,
 1. At the beginning of the file, add a dedicated output channel:
 
    ```js
-   // create an output channel named "CRACK"
+   // create an output channel named "@@ CRACK @@"
    // @see https://code.visualstudio.com/api/references/vscode-api#OutputChannel
-   const my_output_panel = require("vscode").window.createOutputChannel("CRACK");
-
-   const my_log = (variable) => {
-     if (typeof variable === "object") {
+   const my_output_panel = require("vscode").window.createOutputChannel("@@ CRACK @@");
+   const my_log = (value) => {
+     if (typeof value === "object") {
        // otherwise, it may show boring "[Object Object]"
-       variable = require("util").inspect(webpackConfig, false, null);
+       value = require("util").inspect(value, false, null);
      }
 
-     my_output_panel.appendLine(variable);
+     my_output_panel.appendLine(value);
    };
    ```
 
@@ -98,7 +101,7 @@ Take `extension/extension.bundle.js` as an example,
    my_log(variable);
    ```
 
-1. If that code is triggered, you should be able to see the variable value in the "CRACK" output panel.
+1. If that code is triggered, you should be able to see the variable value in the `@@ CRACK @@` output panel.
 
 ## TODO
 
