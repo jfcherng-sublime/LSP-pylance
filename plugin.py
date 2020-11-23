@@ -41,6 +41,7 @@ class LspPylancePlugin(VsMarketplaceClientHandler):
     server_binary_path = SERVER_BINARY_PATH
     execute_with_node = True
     pretend_vscode = True
+    download_from = "pvsc"
 
     # resources directories will be copied into the server directory during server installation
     resource_dirs = ["_resources"]
@@ -64,10 +65,6 @@ class LspPylancePlugin(VsMarketplaceClientHandler):
     @classmethod
     def minimum_node_version(cls) -> Tuple[int, int, int]:
         return (12, 0, 0)
-
-    @classmethod
-    def download_from(cls) -> str:
-        return "pvsc"
 
     def on_workspace_did_change_configuration(self, settings: DottedDict) -> None:
         super().on_workspace_did_change_configuration(settings)
