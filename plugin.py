@@ -1,5 +1,6 @@
+from .consts import EXTENSION_UID
+from .consts import EXTENSION_VERSION
 from .consts import SERVER_BINARY_PATH
-from .consts import SERVER_VERSION
 from .helpers.dotted import create_dottable
 from .helpers.dotted import dotted_get
 from .helpers.dotted import dotted_set
@@ -7,9 +8,9 @@ from .helpers.dotted import Dottedable
 from .helpers.plugin_message import status_msg
 from .helpers.settings import get_setting
 from .helpers.utils import unique
+from .helpers.vs_marketplace_lsp_utils import configure_lsp_like_vscode
 from .helpers.vs_marketplace_lsp_utils import notification_handler
 from .helpers.vs_marketplace_lsp_utils import VsMarketplaceClientHandler
-from .helpers.vs_marketplace_lsp_utils.vscode_settings import configure_lsp_like_vscode
 from LSP.plugin import __version__ as lsp_version
 from LSP.plugin import DottedDict
 from LSP.plugin.core.typing import Any, Dict, List, Tuple
@@ -35,9 +36,8 @@ def plugin_unloaded() -> None:
 class LspPylancePlugin(VsMarketplaceClientHandler):
     package_name = "LSP-pylance"
 
-    # this InsiderChannel uid is dumped from Pylance 2020.11.2, extension.bundle.js
-    extension_uid = "pylance-insiders.vscode-pylance"
-    extension_version = SERVER_VERSION
+    extension_uid = EXTENSION_UID
+    extension_version = EXTENSION_VERSION
     server_binary_path = SERVER_BINARY_PATH
     execute_with_node = True
     pretend_vscode = True
