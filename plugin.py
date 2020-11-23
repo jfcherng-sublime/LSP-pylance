@@ -1,5 +1,9 @@
-from .consts import SERVER_BINARY_PATH, SERVER_VERSION
-from .helpers.dotted import Dottedable, create_dottable, dotted_get, dotted_set
+from .consts import SERVER_BINARY_PATH
+from .consts import SERVER_VERSION
+from .helpers.dotted import create_dottable
+from .helpers.dotted import dotted_get
+from .helpers.dotted import dotted_set
+from .helpers.dotted import Dottedable
 from .helpers.plugin_message import status_msg
 from .helpers.settings import get_setting
 from .helpers.utils import unique
@@ -20,9 +24,11 @@ def plugin_loaded() -> None:
 
 
 def plugin_unloaded() -> None:
+    is_dev_mode = get_setting("developing")
+
     # the cleanup() will delete the downloaded server
     # we don't want this during developing this plugin...
-    if not get_setting("developing"):
+    if not is_dev_mode:
         LspPylancePlugin.cleanup()
 
 

@@ -1,4 +1,5 @@
-from abc import ABCMeta, abstractmethod
+from abc import ABCMeta
+from abc import abstractmethod
 from LSP.plugin import DottedDict
 from typing import Any, Generic, List, Optional, TypeVar, Union
 import re

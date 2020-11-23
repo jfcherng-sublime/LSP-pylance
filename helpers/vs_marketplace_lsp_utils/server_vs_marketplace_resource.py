@@ -4,7 +4,8 @@ from lsp_utils.helpers import log_and_show_message
 from lsp_utils.helpers import SemanticVersion
 from lsp_utils.helpers import version_to_string
 from lsp_utils.server_npm_resource import NodeVersionResolver
-from sublime_lib import ActivityIndicator, ResourcePath
+from sublime_lib import ActivityIndicator
+from sublime_lib import ResourcePath
 import gzip
 import io
 import os
