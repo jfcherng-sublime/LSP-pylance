@@ -66,33 +66,28 @@ class LspPylancePlugin(VsMarketplaceClientHandler):
     def minimum_node_version(cls) -> Tuple[int, int, int]:
         return (12, 0, 0)
 
-    def on_workspace_did_change_configuration(self, settings: DottedDict) -> None:
-        super().on_workspace_did_change_configuration(settings)
+    @classmethod
+    def on_settings_read(cls, settings: sublime.Settings) -> bool:
+        """ Only needed for ST 3 """
+
+        super().on_settings_read(settings)
+
+        d = create_dottable(settings)
+
+        if lsp_version < (1, 0, 0) and get_setting("dev_environment") == "sublime_text":
+            cls.inject_extra_paths_st(d, "settings.<{}>".format(cls.key_extraPaths))
+
+        return False
+
+    def on_settings_changed(self, settings: DottedDict) -> None:
+        """ Only works for ST 4 """
+
+        super().on_settings_changed(settings)
 
         d = create_dottable(settings)
 
         if get_setting("dev_environment") == "sublime_text":
             self.inject_extra_paths_st(d, self.key_extraPaths)
-
-    def on_workspace_configuration(self, params: Dict, configuration: Dict[str, Any]) -> None:
-        super().on_workspace_configuration(params, configuration)
-
-        d = create_dottable(configuration)
-        section = params.get("section", "")
-
-        if self.key_extraPaths.startswith(section) and get_setting("dev_environment") == "sublime_text":
-            self.inject_extra_paths_st(d, self.key_extraPaths[len(section) :].lstrip("."))
-
-    @classmethod
-    def on_settings_read(cls, settings: sublime.Settings) -> bool:
-        super().on_settings_read(settings)
-
-        d = create_dottable(settings)
-
-        if lsp_version < (1, 0, 0) and settings.get("dev_environment") == "sublime_text":
-            cls.inject_extra_paths_st(d, "settings." + cls.key_extraPaths)
-
-        return False
 
     # -------- #
     # handlers #

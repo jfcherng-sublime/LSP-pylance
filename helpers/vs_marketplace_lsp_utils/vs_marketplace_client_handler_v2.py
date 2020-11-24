@@ -4,8 +4,8 @@ from .server_vs_marketplace_resource import ServerVsMarketplaceResource
 from .vscode_settings import configure_server_settings_like_vscode
 from LSP.plugin import AbstractPlugin
 from LSP.plugin import ClientConfig
+from LSP.plugin import DottedDict
 from LSP.plugin import register_plugin
-from LSP.plugin import ResolvedStartupConfig
 from LSP.plugin import Session
 from LSP.plugin import unregister_plugin
 from LSP.plugin import WorkspaceFolder
@@ -132,45 +132,11 @@ class VsMarketplaceClientHandler(AbstractPlugin):
         return upgraded_list
 
     @classmethod
-    def on_pre_start(
-        cls,
-        window: sublime.Window,
-        initiating_view: sublime.View,
-        workspace_folders: List[WorkspaceFolder],
-        resolved: ResolvedStartupConfig,
-    ) -> Optional[str]:
-        if cls.pretend_vscode:
-            configure_server_settings_like_vscode(resolved)
-
-            if not resolved.command:
-                resolved.command = cls._default_launch_command()
-
-    @classmethod
     def get_binary_arguments(cls) -> List[str]:
         """
         Returns a list of extra arguments to append when starting server.
         """
         return ["--stdio"] if cls.execute_with_node else []
-
-    @classmethod
-    def on_settings_read(cls, settings: sublime.Settings) -> bool:
-        """
-        Called when package settings were read. Receives a `sublime.Settings` object.
-
-        Can be used to change user settings, migrating them to new schema, for example.
-
-        Return True if settings were modified to save changes to file.
-        """
-        return False
-
-    @classmethod
-    def on_client_configuration_ready(cls, configuration: Dict[str, Any]) -> None:
-        """
-        Called with default configuration object that contains merged default and user settings.
-
-        Can be used to alter default configuration before registering it.
-        """
-        pass
 
     @classmethod
     def needs_update_or_installation(cls) -> bool:
@@ -216,7 +182,68 @@ class VsMarketplaceClientHandler(AbstractPlugin):
         register_decorated_handlers(self, api)
         self.on_ready(api)
 
+    # -------------- #
+    # event handlers #
+    # -------------- #
+
+    @classmethod
+    def on_pre_start(
+        cls,
+        window: sublime.Window,
+        initiating_view: sublime.View,
+        workspace_folders: List[WorkspaceFolder],
+        configuration: ClientConfig,
+    ) -> Optional[str]:
+        """
+        Callback invoked just before the language server subprocess is started. This is the place to do last-minute
+        adjustments to your "command" or "init_options" in the passed-in "configuration" argument, or change the
+        order of the workspace folders. You can also choose to return a custom working directory, but consider that a
+        language server should not care about the working directory.
+
+        :param      window:             The window
+        :param      initiating_view:    The initiating view
+        :param      workspace_folders:  The workspace folders, you can modify these
+        :param      configuration:      The configuration, you can modify this one
+
+        :returns:   A desired working directory, or None if you don't care
+        """
+
+        if cls.pretend_vscode:
+            configure_server_settings_like_vscode(configuration)
+
+            if not configuration.command:
+                configuration.command = cls._default_launch_command()
+
+    @classmethod
+    def on_settings_read(cls, settings: sublime.Settings) -> bool:
+        """
+        Called when package settings were read. Receives a `sublime.Settings` object.
+
+        Can be used to change user settings, migrating them to new schema, for example.
+
+        Return True if settings were modified to save changes to file.
+        """
+        return False
+
+    @classmethod
+    def on_client_configuration_ready(cls, configuration: Dict[str, Any]) -> None:
+        """
+        Called with default configuration object that contains merged default and user settings.
+
+        Can be used to alter default configuration before registering it.
+        """
+        pass
+
     def on_ready(self, api: ApiWrapper) -> None:
+        pass
+
+    def on_settings_changed(self, settings: DottedDict) -> None:
+        """
+        Override this method to alter the settings that are returned to the server for the
+        workspace/didChangeConfiguration notification and the workspace/configuration requests.
+
+        :param      settings:      The settings that the server should receive.
+        """
         pass
 
     # -------------- #

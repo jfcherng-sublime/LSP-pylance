@@ -1,16 +1,19 @@
 from abc import ABCMeta
 from abc import abstractmethod
-from LSP.plugin import DottedDict
 from typing import Any, Generic, List, Optional, TypeVar, Union
 import re
 import sublime
 
 try:
-    from LSP.plugin import ResolvedStartupConfig
+    from LSP.plugin import DottedDict
 except ImportError:
-    # LSP for ST 3 doesn't have ResolvedStartupConfig
-    class ResolvedStartupConfig:
-        pass
+
+    class DottedDict:
+        def get(self, *arg, **kwargs) -> Any:
+            ...
+
+        def assign(self, *arg, **kwargs) -> Any:
+            ...
 
 
 T = TypeVar("T")
@@ -24,11 +27,11 @@ class DottedUnreachableException(Exception):
 class Dottedable(Generic[T], metaclass=ABCMeta):
     @abstractmethod
     def dotted_get(self, dotted: Optional[str], default: Optional[Any] = None) -> Any:
-        pass
+        raise NotImplementedError()
 
     @abstractmethod
     def dotted_set(self, dotted: str, value: Any) -> None:
-        pass
+        raise NotImplementedError()
 
     @property
     def wrapped(self) -> T:
@@ -45,7 +48,7 @@ class Dottedable(Generic[T], metaclass=ABCMeta):
         - `"a.<b.c>.d"` becomes `["a", "b.c", "d"]`
         """
 
-        return [m.group(1) or m.group(2) for m in re.finditer(r"([^.\[\]]+)|<([^>]+)>", dotted)]
+        return [m.group(1) or m.group(2) for m in re.finditer(r"([^.<>]+)|<([^>]+)>", dotted)]
 
     def k2d(self, keys: List[str]) -> str:
         """
@@ -126,41 +129,6 @@ class DottedDictWrapper(Dottedable[DottedDict]):
         self._wrapped.assign(self.d)
 
 
-class ResolvedStartupConfigWrapper(Dottedable[ResolvedStartupConfig]):
-    def dotted_get(self, dotted: Optional[str], default: Optional[Any] = None) -> Any:
-        if not dotted:
-            return self._wrapped
-
-        keys = self.d2k(dotted)
-        top_key = keys.pop(0)
-
-        if not hasattr(self._wrapped, top_key):
-            # should not read custom attribute in ResolvedStartupConfig
-            raise DottedUnreachableException(dotted)
-
-        return keys_get_native(getattr(self._wrapped, top_key), keys, default)
-
-    def dotted_set(self, dotted: str, value: Any) -> None:
-        if not dotted:
-            return None
-
-        keys = self.d2k(dotted)
-        top_key = keys.pop(0)
-
-        if not hasattr(self._wrapped, top_key):
-            # cannot create custom attribute in ResolvedStartupConfig
-            raise DottedUnreachableException(dotted)
-
-        top_item = value
-
-        try:
-            keys_set_native(top_item, keys, value)
-        except Exception:
-            raise DottedUnreachableException(dotted)
-
-        setattr(self._wrapped, top_key, top_item)
-
-
 def create_dottable(var: T) -> Dottedable[T]:
     if isinstance(var, Dottedable):
         return var
@@ -173,9 +141,6 @@ def create_dottable(var: T) -> Dottedable[T]:
 
     if isinstance(var, DottedDict):
         return DottedDictWrapper(var)
-
-    if isinstance(var, ResolvedStartupConfig):
-        return ResolvedStartupConfigWrapper(var)
 
     raise TypeError("Failed to wrap the variable into a Dottable.")
 

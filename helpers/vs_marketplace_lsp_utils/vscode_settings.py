@@ -1,21 +1,13 @@
+from LSP.plugin import ClientConfig
 from LSP.plugin.core import sessions
 from LSP.plugin.core.typing import Dict, Union
 import json
 import sublime
 
-try:
-    from LSP.plugin.core.types import ResolvedStartupConfig
-except ImportError:
-    # LSP for ST 3 doesn't have ResolvedStartupConfig
-    class ResolvedStartupConfig:
-        pass
-
-
 __all__ = [
     "configure_lsp_like_vscode",
     "configure_server_settings_like_vscode",
 ]
-
 
 # The client info which VSCode sends to a LSP server
 VSCODE_CLIENTINFO = {
@@ -42,7 +34,7 @@ def configure_lsp_like_vscode() -> None:
     _use_vscode_client_info()
 
 
-def configure_server_settings_like_vscode(settings: Union[sublime.Settings, ResolvedStartupConfig, dict]) -> None:
+def configure_server_settings_like_vscode(settings: Union[sublime.Settings, ClientConfig, dict]) -> None:
     """ Modifies the given settings to make it like VSCode """
 
     env_vscode = VSCODE_ENV.copy()
@@ -53,7 +45,7 @@ def configure_server_settings_like_vscode(settings: Union[sublime.Settings, Reso
         settings.set("env", env)
         return
 
-    if isinstance(settings, ResolvedStartupConfig):
+    if isinstance(settings, ClientConfig):
         env = getattr(settings, "env")  # type: Dict[str, str]
         env.update(env_vscode)
         return
