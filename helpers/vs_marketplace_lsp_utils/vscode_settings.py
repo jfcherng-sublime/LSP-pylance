@@ -13,7 +13,7 @@ __all__ = [
 VSCODE_CLIENTINFO = {
     "name": "vscode",
     # @see https://github.com/microsoft/vscode/releases/latest
-    "version": "1.51.1",
+    "version": "1.52.0",
 }
 
 # The environment variables used in VSCode
@@ -23,6 +23,7 @@ VSCODE_ENV = {
         {
             "locale": "en-us",
             "availableLanguages": {},
+            "_languagePackSupport": False,
         },
     ),
 }
@@ -64,7 +65,7 @@ def _use_vscode_client_info() -> None:
 
     # this method will result in all sessions use the modified clientInfo
     # so this should be only executed once...
-    if hasattr(sessions, "__use_vscode_client_info"):
+    if getattr(sessions, "__use_vscode_client_info", False):
         return
 
     get_initialize_params_original = sessions.get_initialize_params

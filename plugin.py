@@ -25,11 +25,9 @@ def plugin_loaded() -> None:
 
 
 def plugin_unloaded() -> None:
-    is_dev_mode = get_setting("developing")
-
     # the cleanup() will delete the downloaded server
     # we don't want this during developing this plugin...
-    if not is_dev_mode:
+    if not get_setting("developing"):
         LspPylancePlugin.cleanup()
 
 
@@ -89,9 +87,9 @@ class LspPylancePlugin(VsMarketplaceClientHandler):
         if get_setting("dev_environment") == "sublime_text":
             self.inject_extra_paths_st(d, self.key_extraPaths)
 
-    # -------- #
-    # handlers #
-    # -------- #
+    # ---------------- #
+    # message handlers #
+    # ---------------- #
 
     @notification_handler("telemetry/event")
     def nh_telemetry_event(self, params: Dict[str, Any]) -> None:
