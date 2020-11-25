@@ -17,16 +17,34 @@ Apart from IntelliCode, which is not working, there are still other improvements
 
 Some interesting findings:
 
-- The model file download link: the `output.blob.azureBlobStorage.readSasToken` section in
+- I am pretty sure that IntelliCode can be run offline.
+- Zipped IntelliCode model file download link: the `output.blob.azureBlobStorage.readSasToken` section in
   https://prod.intellicode.vsengsaas.visualstudio.com/api/v1/model/common/python/intellisense-members-lstm-pylance/output/latest
-- Potentially related LSP command:
-  `view.run_command('lsp_execute', {"command_name":"python.intellicode.loadLanguageServerExtension", "command_args":{"modelPath":"..."}})`
+  (not important but just a log: while downloading, VSCode's User-Agent is `vscodeintellicode/1.2.10 vscode/1.51.1`)
+- In VSCode, add `"python.trace.server": "verbose"` to `settings.json` to show detailed client/server communications.
 
-  But sending that command to Pylance results in a unhandled Promise rejection:
+  VSCode Intellicode extension sends the following message to Pylance:
 
   ```text
-  :: --> LSP-pylance workspace/executeCommand(16): {'command': 'python.intellicode.loadLanguageServerExtension', 'arguments': {'modelPath': 'C:\\Users\\XXXXX\\AppData\\Local\\Sublime Text\\Package Storage\\LSP-pylance\\pylance-insiders.vscode-pylance~2020.11.3-pre.1\\_resources\\model\\E61945A9A512ED5E1A3EE3F1A2365B88F8FE_E4E9EADA96734F01970E616FAB2FAC19'}}
-  LSP-pylance: (node:16444) UnhandledPromiseRejectionWarning: Error: Debug Failure. False expression.
+  [Trace - ...] Sending request 'workspace/executeCommand - (1)'.
+  Params: {
+      "command": "python.intellicode.loadLanguageServerExtension",
+      "arguments": [
+          {
+              "modelPath": "c:\\Users\\XXXXX\\.vscode\\extensions\\visualstudioexptteam.vscodeintellicode-1.2.10\\cache\\E61945A9A512ED5E1A3EE3F1A2365B88F8FE_E4E9EADA96734F01970E616FAB2FAC19"
+          }
+      ]
+  }
+  ```
+
+  I try to do the same thing in ST via:
+  `view.run_command('lsp_execute', {"command_name":"python.intellicode.loadLanguageServerExtension", "command_args":{"modelPath":"..."}})`
+
+  But it results in a unhandled Promise rejection:
+
+  ```text
+  :: --> LSP-pylance workspace/executeCommand(8): {'command': 'python.intellicode.loadLanguageServerExtension', 'arguments': {'modelPath': 'C:\\Users\\XXXXX\\Desktop\\E61945A9A512ED5E1A3EE3F1A2365B88F8FE_E4E9EADA96734F01970E616FAB2FAC19'}}
+  LSP-pylance: (node:23864) UnhandledPromiseRejectionWarning: Error: Debug Failure. False expression.
   LSP-pylance:     at g.<anonymous> (C:\Users\XXXXX\AppData\Local\Sublime Text\Package Storage\LSP-pylance\pylance-insiders.vscode-pylance~2020.11.3-pre.1\extension\dist\server.bundle.js:1:76031)
   LSP-pylance:     at Generator.next (<anonymous>)
   LSP-pylance:     at C:\Users\XXXXX\AppData\Local\Sublime Text\Package Storage\LSP-pylance\pylance-insiders.vscode-pylance~2020.11.3-pre.1\extension\dist\server.bundle.js:1:72638
@@ -37,11 +55,41 @@ Some interesting findings:
   LSP-pylance:     at K.<anonymous> (C:\Users\XXXXX\AppData\Local\Sublime Text\Package Storage\LSP-pylance\pylance-insiders.vscode-pylance~2020.11.3-pre.1\extension\dist\pyright.bundle.js:1:581907)
   LSP-pylance:     at Generator.next (<anonymous>)
   LSP-pylance:     at C:\Users\XXXXX\AppData\Local\Sublime Text\Package Storage\LSP-pylance\pylance-insiders.vscode-pylance~2020.11.3-pre.1\extension\dist\pyright.bundle.js:1:569886
-  LSP-pylance: (node:16444) UnhandledPromiseRejectionWarning: Unhandled promise rejection. This error originated either by throwing inside of an async function without a catch block, or by rejecting a promise which was not handled with .catch(). To terminate the node process on unhandled promise rejection, use the CLI flag `--unhandled-rejections=strict` (see https://nodejs.org/api/cli.html#cli_unhandled_rejections_mode). (rejection id: 6)
+  LSP-pylance: (Use `node --trace-warnings ...` to show where the warning was created)
+  LSP-pylance: (node:23864) UnhandledPromiseRejectionWarning: Unhandled promise rejection. This error originated either by throwing inside of an async function without a catch block, or by rejecting a promise which was not handled with .catch(). To terminate the node process on unhandled promise rejection, use the CLI flag `--unhandled-rejections=strict` (see https://nodejs.org/api/cli.html#cli_unhandled_rejections_mode). (rejection id: 2)
+  :: <<< LSP-pylance 8: None
   ```
 
-  I suspect that this is an incompatible node binding issue. `VSCode 1.15.1` uses `Node.js 12.14.1`.
-  I try to use `Node.js 12.14.1` on my local machine but in vain, the error is still the same.
+  I also found that, in VSCode, if you uninstall Intellicode and execute
+  `python.intellicode.loadLanguageServerExtension` with `modelPath` via a keybinding like
+
+  ```json
+  // C:\Users\XXXXX\AppData\Roaming\Code\User\keybindings.json
+  [
+    {
+      "key": "ctrl+shift+alt+z",
+      "command": "python.intellicode.loadLanguageServerExtension",
+      "args": {
+        "modelPath": "C:\\Users\\XXXXX\\Desktop\\E61945A9A512ED5E1A3EE3F1A2365B88F8FE_E4E9EADA96734F01970E616FAB2FAC19"
+      }
+    }
+  ]
+  ```
+
+  then, Pylance will unzip the download model to
+  `C:\Users\XXXXX\.vscode\extensions\ms-python.vscode-pylance-2020.11.2\dist\intelliCode`
+  and its Intellicode feature gets activated...
+
+To conclude, in VSCode,
+
+- It's not necessary to install VSCode Intellicode to activate Pylance's Intellicode.
+  You just need the downloaded zipped model file and properly manually trigger the
+  `python.intellicode.loadLanguageServerExtension` command with a keybinding.
+- The above procedure works in portable version of VSCode as well.
+- The above procedure **WON'T** work in VSCodium even if I copy Python/Pylance to its extension directory.
+  But I should probably try again after [this PR](https://github.com/VSCodium/vscodium/pull/568)
+  gets included in the next release.
+- I guess the secret is in the Python extension or VSCode itself...
 
 ## Disclaimer
 
@@ -87,13 +135,15 @@ Take `extension/extension.bundle.js` as an example,
    // create an output channel named "@@ CRACK @@"
    // @see https://code.visualstudio.com/api/references/vscode-api#OutputChannel
    const my_output_panel = require("vscode").window.createOutputChannel("@@ CRACK @@");
-   const my_log = (value) => {
-     if (typeof value === "object") {
-       // otherwise, it may show boring "[Object Object]"
-       value = require("util").inspect(value, false, null);
-     }
+   const my_log = (...values) => {
+     for (let value of values) {
+       if (typeof value === "object") {
+         // otherwise, it may show boring "[Object Object]"
+         value = require("util").inspect(value, false, null);
+       }
 
-     my_output_panel.appendLine(value);
+       my_output_panel.appendLine(value);
+     }
    };
    ```
 
