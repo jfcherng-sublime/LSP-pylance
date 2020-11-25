@@ -107,5 +107,7 @@ Take `extension/extension.bundle.js` as an example,
 
 As of the next ST 3 LSP release,
 
-- `TypeVar` is available. I guess we can always use `typing` from `LSP.plugin.core.typing`.
 - Refactor with latest `lsp_utils` features.
+
+  - `on_notification` API decorator
+  - https://github.com/sublimelsp/lsp_utils/pull/39
