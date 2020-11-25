@@ -1,6 +1,8 @@
 from .consts import EXTENSION_UID
 from .consts import EXTENSION_VERSION
 from .consts import SERVER_BINARY_PATH
+from .dev import vscode_env
+from .dev import vscode_python_settings
 from .helpers.dotted import create_dottable
 from .helpers.dotted import dotted_get
 from .helpers.dotted import dotted_set
@@ -12,8 +14,11 @@ from .helpers.vs_marketplace_lsp_utils import configure_lsp_like_vscode
 from .helpers.vs_marketplace_lsp_utils import notification_handler
 from .helpers.vs_marketplace_lsp_utils import VsMarketplaceClientHandler
 from LSP.plugin import __version__ as lsp_version
+from LSP.plugin import ClientConfig
 from LSP.plugin import DottedDict
-from LSP.plugin.core.typing import Any, Dict, List, Tuple
+from LSP.plugin import DottedDict
+from LSP.plugin import WorkspaceFolder
+from LSP.plugin.core.typing import Any, Dict, List, Optional, Tuple
 import os
 import sublime
 import sys
@@ -86,6 +91,25 @@ class LspPylancePlugin(VsMarketplaceClientHandler):
 
         if get_setting("dev_environment") == "sublime_text":
             self.inject_extra_paths_st(d, self.key_extraPaths)
+
+        if get_setting("developing"):
+            vscpy_settings = DottedDict(vscode_python_settings())
+            vscpy_settings.update(settings.get())
+            settings.assign(vscpy_settings.get())
+
+    @classmethod
+    def on_pre_start(
+        cls,
+        window: sublime.Window,
+        initiating_view: sublime.View,
+        workspace_folders: List[WorkspaceFolder],
+        configuration: ClientConfig,
+    ) -> Optional[str]:
+        super().on_pre_start(window, initiating_view, workspace_folders, configuration)
+
+        if get_setting("developing"):
+            env = getattr(configuration, "env")  # type: Dict[str, str]
+            env.update(vscode_env())
 
     # ---------------- #
     # message handlers #
