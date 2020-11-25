@@ -34,7 +34,7 @@ def plugin_unloaded() -> None:
 
 
 class LspPylancePlugin(VsMarketplaceClientHandler):
-    package_name = "LSP-pylance"
+    package_name = __package__.split(".")[0]
 
     extension_uid = EXTENSION_UID
     extension_version = EXTENSION_VERSION

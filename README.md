@@ -63,9 +63,11 @@ The Pylance server code is heavily obfuscated and it's quite possible that Micro
 This package is not published anywhere.
 
 1. Install [LSP](https://packagecontrol.io/packages/LSP) first for sure.
-1. Manually download (or clone) source codes from GitHub to `Packages/LSP-pylance`.
+1. Manually clone, which is preferred due to easier update, or download source codes from GitHub to `Packages/LSP-pylance`.
+   You **MUST** use `LSP-pylance` as the package/directory name.
 1. Restart Sublime Text.
 1. Open a `.py` file in a project.
+   If there is `LSP-pylance` in the status bar (the bottom-left corner), then it's done right.
 
 ## Configuration
 
