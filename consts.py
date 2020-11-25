@@ -1,8 +1,8 @@
 import os
 
-# example download URL for version quick test
-# https://marketplace.visualstudio.com/items?itemName=ms-python.vscode-pylance
-# https://pvsc.blob.core.windows.net/pylance-insiders/vscode-pylance-2020.11.3-pre.1.vsix
+# For checking the latest version of Pylance:
+#     - https://marketplace.visualstudio.com/items?itemName=ms-python.vscode-pylance
+#     - https://pvsc.blob.core.windows.net/pylance-insiders?restype=container&comp=list
 
 EXTENSION_UID = "pylance-insiders.vscode-pylance"
 EXTENSION_VERSION = "2020.11.3-pre.1"
