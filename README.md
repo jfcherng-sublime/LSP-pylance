@@ -13,7 +13,47 @@ Apart from IntelliCode, which is not working, there are still other improvements
   [this comment](https://github.com/jfcherng-sublime/LSP-pylance/issues/2#issuecomment-716548465).
 - See [Pylance's changelog](https://marketplace.visualstudio.com/items/ms-python.vscode-pylance/changelog).
 
-## About IntelliCode
+## Disclaimer
+
+This repository is more or less a proof of concept.
+The Pylance server code is heavily obfuscated and it's possible that Microsoft has telemetry in it.
+
+- The [license of Pylance](https://marketplace.visualstudio.com/items/ms-python.vscode-pylance/license)
+  disallows you to use it in non-Microsoft editors.
+
+  > INSTALLATION AND USE RIGHTS. a) General. You may install and use any number of copies of the
+  > software """""only""""" with Microsoft Visual Studio, Visual Studio for Mac, Visual Studio Code,
+  > Azure DevOps, Team Foundation Server, and successor Microsoft products and services
+  > (collectively, the “Visual Studio Products and Services”) to develop and test your applications...
+
+  See that tiny "only" in the sentence? So if you use this repository, it's on your own risk.
+
+- Microsoft added some codes to Pylance as of `2020.10.3` to prevent itself from being started in
+  non-Microsoft editors but LSP-pylance tries to cope with those restrictions and make it working in ST.
+
+## Installation
+
+This package is not published anywhere.
+
+1. Install [LSP](https://packagecontrol.io/packages/LSP) first for sure.
+1. Manually clone, which is preferred due to easier update, or download source codes from GitHub to `Packages/LSP-pylance`.
+   You **MUST** use `LSP-pylance` as the package/directory name.
+1. Restart Sublime Text.
+1. Open a `.py` file in a project.
+   If there is `LSP-pylance` in the status bar (the bottom-left corner), then it's done right.
+
+## Configuration
+
+There are some ways to configure the package and the language server.
+
+- From `Preferences > Package Settings > LSP > Servers > LSP-pylance`
+- From the command palette `Preferences: LSP-pylance Settings`
+
+## For Developer of This Plugin
+
+### About IntelliCode
+
+<details>
 
 Some interesting findings:
 
@@ -38,7 +78,10 @@ Some interesting findings:
   ```
 
   I try to do the same thing in ST via:
-  `view.run_command('lsp_execute', {"command_name":"python.intellicode.loadLanguageServerExtension", "command_args":{"modelPath":"..."}})`
+
+  ```python
+  view.run_command('lsp_execute', {"command_name":"python.intellicode.loadLanguageServerExtension", "command_args":{"modelPath":"..."}})
+  ```
 
   But it results in a unhandled Promise rejection:
 
@@ -90,41 +133,24 @@ To conclude, in VSCode,
   But I should probably try again after [this PR](https://github.com/VSCodium/vscodium/pull/568)
   gets included in the next release.
 - I guess the secret is in the Python extension or VSCode itself...
+- [Someone on Reddit](https://www.reddit.com/r/linux/comments/k0s8qw/vs_code_developers_prevent_running_the_new/gdkxvpe/)
+  provides a way to make Pylance run in non-official build of VSCode.
+  I am not sure whether it make Intellicode work as well or just make plugin loadable.
 
-## Disclaimer
+  > FYI this seems to fix that error in unofficial builds, you just have to change the following in `product.json`.
+  >
+  > Add the extension to `extensionAllowedProposedApi`:
+  > `"ms-python.python", "ms-python.gather"`
+  >
+  > Change `nameLong` to:
+  >
+  > `"Visual Studio Code"`
 
-This repository is more or less a proof of concept.
-The Pylance server code is heavily obfuscated and it's quite possible that Microsoft has telemetry in it.
+</details>
 
-- The [license of Pylance](https://marketplace.visualstudio.com/items/ms-python.vscode-pylance/license)
-  disallows you to use it in non-Microsoft editors.
+### How to Dump Variables in VSCode Extension
 
-  > INSTALLATION AND USE RIGHTS. a) General. You may install and use any number of copies of the software """""only""""" with Microsoft Visual Studio, Visual Studio for Mac, Visual Studio Code, Azure DevOps, Team Foundation Server, and successor Microsoft products and services (collectively, the “Visual Studio Products and Services”) to develop and test your applications...
-
-  See that tiny "only" in the sentence? So if you use this repository, it's on your own risk.
-
-- Microsoft added some codes to Pylance as of `2020.10.3` to prevent itself from being started in non-Microsoft editors
-  but LSP-pylance tries to crack those restrictions and make it working in ST.
-
-## Installation
-
-This package is not published anywhere.
-
-1. Install [LSP](https://packagecontrol.io/packages/LSP) first for sure.
-1. Manually clone, which is preferred due to easier update, or download source codes from GitHub to `Packages/LSP-pylance`.
-   You **MUST** use `LSP-pylance` as the package/directory name.
-1. Restart Sublime Text.
-1. Open a `.py` file in a project.
-   If there is `LSP-pylance` in the status bar (the bottom-left corner), then it's done right.
-
-## Configuration
-
-There are some ways to configure the package and the language server.
-
-- From `Preferences > Package Settings > LSP > Servers > LSP-pylance`
-- From the command palette `Preferences: LSP-pylance Settings`
-
-## How to Dump Variables from VSCode Extension
+<details>
 
 Take `extension/extension.bundle.js` as an example,
 
@@ -155,7 +181,9 @@ Take `extension/extension.bundle.js` as an example,
 
 1. If that code is triggered, you should be able to see the variable value in the `@@ CRACK @@` output panel.
 
-## TODO
+</details>
+
+### TODO
 
 As of the next ST 3 LSP release,
 
