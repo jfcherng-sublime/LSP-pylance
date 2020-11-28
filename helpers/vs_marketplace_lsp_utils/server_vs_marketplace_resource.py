@@ -1,10 +1,13 @@
 from .vscode_settings import VSCODE_CLIENTINFO
-from LSP.plugin.core.typing import List, Optional
+from LSP.plugin.core.typing import Dict, List, Optional
+from lsp_utils import ServerResourceInterface
+from lsp_utils import ServerStatus
 from lsp_utils.helpers import log_and_show_message
+from lsp_utils.helpers import parse_version
+from lsp_utils.helpers import run_command_sync
 from lsp_utils.helpers import SemanticVersion
 from lsp_utils.helpers import version_to_string
 from lsp_utils.server_npm_resource import NodeVersionResolver
-from sublime_lib import ActivityIndicator
 from sublime_lib import ResourcePath
 import gzip
 import io
@@ -16,50 +19,32 @@ import urllib.error
 import urllib.request
 import zipfile
 
+__all__ = ["ServerVsMarketplaceResource"]
 
-def get_server_vs_marketplace_resource_for_package(
-    package_name: str,
-    extension_uid: str,
-    extension_version: str,
-    server_binary_path: str,
-    package_storage: str,
-    minimum_node_version: SemanticVersion,
-    download_from: str = "marketplace",
-    resource_dirs: List[str] = [],
-) -> Optional["ServerVsMarketplaceResource"]:
-    if shutil.which("node") is None:
-        log_and_show_message(
-            "{}: Error: Node binary not found on the PATH."
-            "Check the LSP Troubleshooting section for information on how to fix that: "
-            "https://lsp.readthedocs.io/en/latest/troubleshooting/".format(package_name)
-        )
-        return None
-    installed_node_version = node_version_resolver.resolve()
-    if not installed_node_version:
-        return None
-    if installed_node_version < minimum_node_version:
-        error = "Installed node version ({}) is lower than required version ({})".format(
-            version_to_string(installed_node_version),
-            version_to_string(minimum_node_version),
-        )
-        log_and_show_message("{}: Error:".format(package_name), error)
-        return None
-    return ServerVsMarketplaceResource(
-        package_name,
-        extension_uid,
-        extension_version,
-        server_binary_path,
-        package_storage,
-        version_to_string(installed_node_version),
-        download_from,
-        resource_dirs,
-    )
+
+class NodeVersionResolver:
+    """
+    A singleton for resolving Node version once per session.
+    """
+
+    def __init__(self) -> None:
+        self._version = None  # type: Optional[SemanticVersion]
+
+    def resolve(self) -> Optional[SemanticVersion]:
+        if self._version:
+            return self._version
+        version, error = run_command_sync(["node", "--version"])
+        if error is not None:
+            log_and_show_message("lsp_utils(NodeVersionResolver): Error resolving node version: {}!".format(error))
+        else:
+            self._version = parse_version(version)
+        return self._version
 
 
 node_version_resolver = NodeVersionResolver()
 
 
-class ServerVsMarketplaceResource:
+class ServerVsMarketplaceResource(ServerResourceInterface):
     """Global object providing paths to server resources.
     Also handles the installing and updating of the server in cache.
 
@@ -85,6 +70,10 @@ class ServerVsMarketplaceResource:
         },
     }
 
+    # --------------------------- #
+    # ServerVsMarketplaceResource #
+    # --------------------------- #
+
     def __init__(
         self,
         package_name: str,
@@ -92,13 +81,13 @@ class ServerVsMarketplaceResource:
         extension_version: str,
         server_binary_path: str,
         package_storage: str,
-        node_version: str,
+        node_version: Optional[str],
         download_from: str = "marketplace",
         resource_dirs: List[str] = [],
     ) -> None:
-        self._initialized = False
-        self._is_ready = False
-        self._error_on_install = False
+        if not (package_name and extension_uid and extension_version and server_binary_path and package_storage):
+            raise Exception("ServerVsMarketplaceResource could not initialize due to wrong input")
+
         self._package_name = package_name
         self._extension_uid = extension_uid
         self._extension_version = extension_version
@@ -107,97 +96,44 @@ class ServerVsMarketplaceResource:
         self._node_version = node_version
         self._download_place = download_from
         self._resource_dirs = resource_dirs.copy()
-        self._activity_indicator = None
 
-        if not (self._package_name and self._extension_uid and self._extension_version and self._binary_path):
-            raise Exception("ServerVsMarketplaceResource could not initialize due to wrong input")
-
-    @property
-    def ready(self) -> bool:
-        return self._is_ready
+        # internal
+        self._status = ServerStatus.UNINITIALIZED
 
     @property
-    def error_on_install(self) -> bool:
-        return self._error_on_install
-
-    @property
-    def binary_path(self) -> str:
-        """ Looks like ".../Package Storage/LSP-pylance/ms-python.vscode-pylance~2020.11.1/extension/dist/server.bundle.js" """
-
-        return os.path.join(self.server_directory, self._binary_path)
-
-    @property
-    def server_directory(self) -> str:
+    def server_directory_path(self) -> str:
         """ Looks like ".../Package Storage/LSP-pylance/ms-python.vscode-pylance~2020.11.1" """
 
         return os.path.join(self._package_storage, "{}~{}".format(self._extension_uid, self._extension_version))
 
-    def needs_installation(self) -> bool:
-        if self._initialized:
-            return False
-
-        is_installed = os.path.isfile(self.binary_path)
-
-        self._initialized = True
-        self._is_ready = is_installed
-
-        return not is_installed
-
-    def install_or_update(self, async_io: bool) -> None:
-        shutil.rmtree(self.server_directory, ignore_errors=True)
-
-        install_message = "{}: Installing server in path: {}".format(self._package_name, self.server_directory)
-        log_and_show_message(install_message, show_in_status=False)
-
-        active_window = sublime.active_window()
-        active_view = active_window.active_view()
-        if active_window and active_view:
-            self._activity_indicator = ActivityIndicator(active_view, install_message)  # type: ignore
-            self._activity_indicator.start()
-
-        if async_io:
-            sublime.set_timeout_async(lambda: self._install_or_update(), 0)
-        else:
-            self._install_or_update()
-
-    def _on_install_success(self, _: str) -> None:
-        self._is_ready = True
-        self._stop_indicator()
-        log_and_show_message("{}: Server installed. Sublime Text restart might be required.".format(self._package_name))
-
-    def _on_error(self, error: str) -> None:
-        self._error_on_install = True
-        self._stop_indicator()
-        log_and_show_message("{}: Error:".format(self._package_name), error)
-
-    def _stop_indicator(self) -> None:
-        if self._activity_indicator:
-            self._activity_indicator.stop()
-            self._activity_indicator = None
-
-    # -------------- #
-    # custom methods #
-    # -------------- #
-
     def _install_or_update(self) -> None:
-        os.makedirs(self.server_directory, exist_ok=True)
+        os.makedirs(self.server_directory_path, exist_ok=True)
 
-        # copy resources before downloading the server so it may use those resources
-        self._copy_resource_dirs()
-        self._download_extension()
+        try:
+            # copy resources before downloading the server so it may use those resources
+            self._copy_resource_dirs()
+            self._download_extension()
+        except Exception as e:
+            self._status = ServerStatus.ERROR
+            raise e
+
+        self._status = ServerStatus.READY
 
     def _copy_resource_dirs(self) -> None:
-        for folder in self._resource_dirs:
-            folder = re.sub(r"[\\/]+", "/", folder).strip("\\/")
+        try:
+            for folder in self._resource_dirs:
+                folder = re.sub(r"[\\/]+", "/", folder).strip("\\/")
 
-            if not folder:
-                continue
+                if not folder:
+                    continue
 
-            dir_src = "Packages/{}/{}/".format(self._package_name, folder)
-            dir_dst = "{}/{}/".format(self.server_directory, folder)
+                dir_src = "Packages/{}/{}/".format(self._package_name, folder)
+                dir_dst = "{}/{}/".format(self.server_directory_path, folder)
 
-            shutil.rmtree(dir_dst, ignore_errors=True)
-            ResourcePath(dir_src).copytree(dir_dst, exist_ok=True)  # type: ignore
+                shutil.rmtree(dir_dst, ignore_errors=True)
+                ResourcePath(dir_src).copytree(dir_dst, exist_ok=True)  # type: ignore
+        except IOError:
+            raise RuntimeError("Failed to copy resource files...")
 
     def _download_extension(self, save_vsix: bool = True) -> None:
         url = self._expaned_templates(self._download_place + ".download") or ""
@@ -217,21 +153,19 @@ class ServerVsMarketplaceResource:
                 if resp.info().get("Content-Encoding") == "gzip":
                     resp_data = gzip.decompress(resp_data)
         except urllib.error.HTTPError as e:
-            return self._on_error('Unable to download the extension from "{}" (HTTP code: {})'.format(url, e.code))
+            raise RuntimeError('Unable to download the extension from "{}" (HTTP code: {})'.format(url, e.code))
         except urllib.error.ContentTooShortError:
-            return self._on_error("Extension was downloaded imcompletely...")
+            raise RuntimeError("Extension was downloaded imcompletely...")
 
         if save_vsix:
-            with io.open(os.path.join(self.server_directory, "extension.vsix"), "wb") as f:
+            with io.open(os.path.join(self.server_directory_path, "extension.vsix"), "wb") as f:
                 f.write(resp_data)
 
         with zipfile.ZipFile(io.BytesIO(resp_data), "r") as f:
-            f.extractall(self.server_directory)
+            f.extractall(self.server_directory_path)
 
-        if os.path.isfile(self.binary_path):
-            self._on_install_success("")
-        else:
-            self._on_error("Preparation done but somehow the server binary path is not a file.")
+        if not os.path.isfile(self.binary_path):
+            raise RuntimeError("Preparation done but somehow the server binary path is not a file.")
 
     def _expaned_templates(self, dotted: str, default: Optional[str] = None) -> Optional[str]:
         extension_vendor, extension_name = self._extension_uid.split(".")[:2]
@@ -255,3 +189,79 @@ class ServerVsMarketplaceResource:
                 "version": self._extension_version,
             }
         )
+
+    # ----------------------- #
+    # ServerResourceInterface #
+    # ----------------------- #
+
+    @classmethod
+    def create(cls, options: Dict) -> Optional["ServerVsMarketplaceResource"]:
+        package_name = options["package_name"]  # type: str
+        extension_uid = options["extension_uid"]  # type: str
+        extension_version = options["extension_version"]  # type: str
+        server_binary_path = options["server_binary_path"]  # type: str
+        package_storage = options["package_storage"]  # type: str
+        minimum_node_version = options["minimum_node_version"]  # type: Optional[SemanticVersion]
+        download_from = options["download_from"] or "marketplace"  # type: str
+        resource_dirs = options["resource_dirs"] or []  # type: List[str]
+
+        if minimum_node_version:
+            if shutil.which("node") is None:
+                log_and_show_message(
+                    "{}: Error: Node binary not found on the PATH."
+                    "Check the LSP Troubleshooting section for information on how to fix that: "
+                    "https://lsp.readthedocs.io/en/latest/troubleshooting/".format(package_name)
+                )
+                return None
+            installed_node_version = node_version_resolver.resolve()
+            if not installed_node_version:
+                return None
+            if installed_node_version < minimum_node_version:
+                error = "Installed node version ({}) is lower than required version ({})".format(
+                    version_to_string(installed_node_version),
+                    version_to_string(minimum_node_version),
+                )
+                log_and_show_message("{}: Error:".format(package_name), error)
+                return None
+        else:
+            installed_node_version = None
+
+        return ServerVsMarketplaceResource(
+            package_name,
+            extension_uid,
+            extension_version,
+            server_binary_path,
+            package_storage,
+            version_to_string(installed_node_version) if installed_node_version else None,
+            download_from,
+            resource_dirs,
+        )
+
+    @property
+    def binary_path(self) -> str:
+        """ Looks like ".../Package Storage/LSP-pylance/ms-python.vscode-pylance~2020.11.1/extension/dist/server.bundle.js" """
+
+        return os.path.join(self.server_directory_path, self._binary_path)
+
+    def get_status(self) -> int:
+        return self._status
+
+    def needs_installation(self) -> bool:
+        is_installed = os.path.isfile(self.binary_path)
+
+        if is_installed:
+            self._status = ServerStatus.READY
+            return False
+
+        return True
+
+    def install_or_update(self, async_io: bool = False) -> None:
+        shutil.rmtree(self.server_directory_path, ignore_errors=True)
+
+        install_message = "{}: Installing server in path: {}".format(self._package_name, self.server_directory_path)
+        log_and_show_message(install_message, show_in_status=False)
+
+        if async_io:
+            sublime.set_timeout_async(lambda: self._install_or_update(), 0)
+        else:
+            self._install_or_update()

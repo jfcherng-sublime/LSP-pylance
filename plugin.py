@@ -3,22 +3,15 @@ from .consts import EXTENSION_VERSION
 from .consts import SERVER_BINARY_PATH
 from .dev import vscode_env
 from .dev import vscode_python_settings
-from .helpers.dotted import create_dottable
-from .helpers.dotted import dotted_get
-from .helpers.dotted import dotted_set
-from .helpers.dotted import Dottedable
 from .helpers.plugin_message import status_msg
-from .helpers.settings import get_setting
 from .helpers.utils import unique
 from .helpers.vs_marketplace_lsp_utils import configure_lsp_like_vscode
-from .helpers.vs_marketplace_lsp_utils import notification_handler
 from .helpers.vs_marketplace_lsp_utils import VsMarketplaceClientHandler
-from LSP.plugin import __version__ as lsp_version
 from LSP.plugin import ClientConfig
 from LSP.plugin import DottedDict
-from LSP.plugin import DottedDict
 from LSP.plugin import WorkspaceFolder
-from LSP.plugin.core.typing import Any, Dict, List, Optional, Tuple
+from LSP.plugin.core.typing import Any, Dict, List, Optional
+from lsp_utils import notification_handler
 import os
 import sublime
 import sys
@@ -32,7 +25,7 @@ def plugin_loaded() -> None:
 def plugin_unloaded() -> None:
     # the cleanup() will delete the downloaded server
     # we don't want this during developing this plugin...
-    if not get_setting("developing"):
+    if not LspPylancePlugin.get_plugin_setting("developing"):
         LspPylancePlugin.cleanup()
 
 
@@ -65,34 +58,18 @@ class LspPylancePlugin(VsMarketplaceClientHandler):
 
     key_extraPaths = "python.analysis.extraPaths"
 
-    @classmethod
-    def minimum_node_version(cls) -> Tuple[int, int, int]:
-        return (12, 0, 0)
-
-    @classmethod
-    def on_settings_read(cls, settings: sublime.Settings) -> bool:
-        """ Only needed for ST 3 """
-
-        super().on_settings_read(settings)
-
-        d = create_dottable(settings)
-
-        if lsp_version < (1, 0, 0) and get_setting("dev_environment") == "sublime_text":
-            cls.inject_extra_paths_st(d, "settings.<{}>".format(cls.key_extraPaths))
-
-        return False
-
     def on_settings_changed(self, settings: DottedDict) -> None:
-        """ Only works for ST 4 """
-
         super().on_settings_changed(settings)
 
-        d = create_dottable(settings)
+        if self.get_plugin_setting("dev_environment") == "sublime_text":
+            # add package dependencies into "python.analysis.extraPaths"
+            extraPaths = settings.get("python.analysis.extraPaths") or []  # type: List[str]
+            extraPaths.append("${server_directory_path}/_resources/typings")
+            extraPaths.extend(self.find_package_dependency_dirs())
+            extraPaths.append(sublime.installed_packages_path())
+            settings.set("python.analysis.extraPaths", list(unique(extraPaths, stable=True)))
 
-        if get_setting("dev_environment") == "sublime_text":
-            self.inject_extra_paths_st(d, self.key_extraPaths)
-
-        if get_setting("developing"):
+        if self.get_plugin_setting("developing"):
             vscpy_settings = DottedDict(vscode_python_settings())
             vscpy_settings.update(settings.get())
             settings.assign(vscpy_settings.get())
@@ -107,7 +84,7 @@ class LspPylancePlugin(VsMarketplaceClientHandler):
     ) -> Optional[str]:
         super().on_pre_start(window, initiating_view, workspace_folders, configuration)
 
-        if get_setting("developing"):
+        if cls.get_plugin_setting("developing"):
             env = getattr(configuration, "env")  # type: Dict[str, str]
             env.update(vscode_env())
 
@@ -139,14 +116,8 @@ class LspPylancePlugin(VsMarketplaceClientHandler):
     # -------------- #
 
     @classmethod
-    def inject_extra_paths_st(cls, settings: Dottedable, key_extraPaths: str) -> None:
-        extraPaths = dotted_get(settings, key_extraPaths, [])  # type: List[str]
-
-        extraPaths.append("{}/_resources/typings".format(cls.server_directory_path() or "$server_directory_path"))
-        extraPaths.extend(cls.find_package_dependency_dirs())
-        extraPaths.append(sublime.installed_packages_path())
-
-        dotted_set(settings, key_extraPaths, list(unique(extraPaths, stable=True)))
+    def get_plugin_setting(cls, key: str, default: Optional[Any] = None) -> Any:
+        return sublime.load_settings(cls.package_name + ".sublime-settings").get(key, default)
 
     @staticmethod
     def find_package_dependency_dirs() -> List[str]:
