@@ -1,4 +1,6 @@
-# version: 4093
+# This file is maintained on https://github.com/jfcherng-sublime/ST-API-stubs
+#
+# ST version: 4093
 
 from importlib.machinery import ModuleSpec
 from types import ModuleType
@@ -31,7 +33,7 @@ import sublime
 # ----- #
 
 T = TypeVar("T")
-T_ExpandableVar = TypeVar("T_ExpandableVar", str, List[str], Dict[str, str])
+T_ExpandableVar = TypeVar("T_ExpandableVar", None, bool, int, float, str, Dict, List, Tuple)
 T_Layout = TypedDict(
     "T_Layout",
     {

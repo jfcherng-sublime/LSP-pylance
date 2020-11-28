@@ -1,14 +1,17 @@
-from .consts import SERVER_BINARY_PATH, SERVER_VERSION
-from .helpers.dotted import Dottedable, create_dottable, dotted_get, dotted_set
+from .consts import EXTENSION_UID
+from .consts import EXTENSION_VERSION
+from .consts import SERVER_BINARY_PATH
+from .dev import vscode_env
+from .dev import vscode_python_settings
 from .helpers.plugin_message import status_msg
-from .helpers.settings import get_setting
 from .helpers.utils import unique
+from .helpers.vs_marketplace_lsp_utils import configure_lsp_like_vscode
 from .helpers.vs_marketplace_lsp_utils import VsMarketplaceClientHandler
-from .helpers.vs_marketplace_lsp_utils import notification_handler
-from .helpers.vs_marketplace_lsp_utils.vscode_settings import configure_lsp_like_vscode
-from LSP.plugin import __version__ as lsp_version
-from LSP.plugin.core.types import DottedDict
-from typing import Any, Dict, List, Tuple
+from LSP.plugin import ClientConfig
+from LSP.plugin import DottedDict
+from LSP.plugin import WorkspaceFolder
+from LSP.plugin.core.typing import Any, Dict, List, Optional
+from lsp_utils import notification_handler
 import os
 import sublime
 import sys
@@ -22,19 +25,19 @@ def plugin_loaded() -> None:
 def plugin_unloaded() -> None:
     # the cleanup() will delete the downloaded server
     # we don't want this during developing this plugin...
-    if not get_setting("developing"):
+    if not LspPylancePlugin.get_plugin_setting("developing"):
         LspPylancePlugin.cleanup()
 
 
 class LspPylancePlugin(VsMarketplaceClientHandler):
-    package_name = "LSP-pylance"
+    package_name = __package__.split(".")[0]
 
-    # this InsiderChannel uid is dumped from Pylance 2020.11.2, extension.bundle.js
-    extension_uid = "pylance-insiders.vscode-pylance"
-    extension_version = SERVER_VERSION
+    extension_uid = EXTENSION_UID
+    extension_version = EXTENSION_VERSION
     server_binary_path = SERVER_BINARY_PATH
     execute_with_node = True
     pretend_vscode = True
+    download_from = "pvsc"
 
     # resources directories will be copied into the server directory during server installation
     resource_dirs = ["_resources"]
@@ -55,45 +58,39 @@ class LspPylancePlugin(VsMarketplaceClientHandler):
 
     key_extraPaths = "python.analysis.extraPaths"
 
-    @classmethod
-    def minimum_node_version(cls) -> Tuple[int, int, int]:
-        return (12, 0, 0)
+    def on_settings_changed(self, settings: DottedDict) -> None:
+        super().on_settings_changed(settings)
+
+        if self.get_plugin_setting("dev_environment") == "sublime_text":
+            # add package dependencies into "python.analysis.extraPaths"
+            extraPaths = settings.get("python.analysis.extraPaths") or []  # type: List[str]
+            extraPaths.append("${server_directory_path}/_resources/typings")
+            extraPaths.extend(self.find_package_dependency_dirs())
+            extraPaths.append(sublime.installed_packages_path())
+            settings.set("python.analysis.extraPaths", list(unique(extraPaths, stable=True)))
+
+        if self.get_plugin_setting("developing"):
+            vscpy_settings = DottedDict(vscode_python_settings())
+            vscpy_settings.update(settings.get())
+            settings.assign(vscpy_settings.get())
 
     @classmethod
-    def download_from(cls) -> str:
-        return "pvsc"
+    def on_pre_start(
+        cls,
+        window: sublime.Window,
+        initiating_view: sublime.View,
+        workspace_folders: List[WorkspaceFolder],
+        configuration: ClientConfig,
+    ) -> Optional[str]:
+        super().on_pre_start(window, initiating_view, workspace_folders, configuration)
 
-    def on_workspace_did_change_configuration(self, settings: DottedDict) -> None:
-        super().on_workspace_did_change_configuration(settings)
+        if cls.get_plugin_setting("developing"):
+            env = getattr(configuration, "env")  # type: Dict[str, str]
+            env.update(vscode_env())
 
-        d = create_dottable(settings)
-
-        if get_setting("dev_environment") == "sublime_text":
-            self.inject_extra_paths_st(d, self.key_extraPaths)
-
-    def on_workspace_configuration(self, params: Dict, configuration: Dict[str, Any]) -> None:
-        super().on_workspace_configuration(params, configuration)
-
-        d = create_dottable(configuration)
-        section = params.get("section", "")
-
-        if self.key_extraPaths.startswith(section) and get_setting("dev_environment") == "sublime_text":
-            self.inject_extra_paths_st(d, self.key_extraPaths[len(section) :].lstrip("."))
-
-    @classmethod
-    def on_settings_read(cls, settings: sublime.Settings) -> bool:
-        super().on_settings_read(settings)
-
-        d = create_dottable(settings)
-
-        if lsp_version < (1, 0, 0) and settings.get("dev_environment") == "sublime_text":  # type: ignore
-            cls.inject_extra_paths_st(d, "settings." + cls.key_extraPaths)
-
-        return False
-
-    # -------- #
-    # handlers #
-    # -------- #
+    # ---------------- #
+    # message handlers #
+    # ---------------- #
 
     @notification_handler("telemetry/event")
     def nh_telemetry_event(self, params: Dict[str, Any]) -> None:
@@ -119,14 +116,8 @@ class LspPylancePlugin(VsMarketplaceClientHandler):
     # -------------- #
 
     @classmethod
-    def inject_extra_paths_st(cls, settings: Dottedable, key_extraPaths: str) -> None:
-        extraPaths = dotted_get(settings, key_extraPaths, [])  # type: List[str]
-
-        extraPaths.append("{}/_resources/typings".format(cls.server_directory_path() or "$server_directory_path"))
-        extraPaths.extend(cls.find_package_dependency_dirs())
-        extraPaths.append(sublime.installed_packages_path())
-
-        dotted_set(settings, key_extraPaths, list(unique(extraPaths, stable=True)))
+    def get_plugin_setting(cls, key: str, default: Optional[Any] = None) -> Any:
+        return sublime.load_settings(cls.package_name + ".sublime-settings").get(key, default)
 
     @staticmethod
     def find_package_dependency_dirs() -> List[str]:

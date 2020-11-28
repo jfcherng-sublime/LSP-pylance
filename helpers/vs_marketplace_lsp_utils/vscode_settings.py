@@ -1,27 +1,19 @@
-from .typing import Dict, Union
+from LSP.plugin import ClientConfig
 from LSP.plugin.core import sessions
+from LSP.plugin.core.typing import Dict, Union
 import json
 import sublime
-
-try:
-    from LSP.plugin.core.types import ResolvedStartupConfig
-except ImportError:
-    # LSP for ST 3 doesn't have ResolvedStartupConfig
-    class ResolvedStartupConfig:
-        pass
-
 
 __all__ = [
     "configure_lsp_like_vscode",
     "configure_server_settings_like_vscode",
 ]
 
-
 # The client info which VSCode sends to a LSP server
 VSCODE_CLIENTINFO = {
     "name": "vscode",
     # @see https://github.com/microsoft/vscode/releases/latest
-    "version": "1.51.1",
+    "version": "1.52.0",
 }
 
 # The environment variables used in VSCode
@@ -31,6 +23,7 @@ VSCODE_ENV = {
         {
             "locale": "en-us",
             "availableLanguages": {},
+            "_languagePackSupport": False,
         },
     ),
 }
@@ -42,7 +35,7 @@ def configure_lsp_like_vscode() -> None:
     _use_vscode_client_info()
 
 
-def configure_server_settings_like_vscode(settings: Union[sublime.Settings, ResolvedStartupConfig, dict]) -> None:
+def configure_server_settings_like_vscode(settings: Union[sublime.Settings, ClientConfig, dict]) -> None:
     """ Modifies the given settings to make it like VSCode """
 
     env_vscode = VSCODE_ENV.copy()
@@ -53,7 +46,7 @@ def configure_server_settings_like_vscode(settings: Union[sublime.Settings, Reso
         settings.set("env", env)
         return
 
-    if isinstance(settings, ResolvedStartupConfig):
+    if isinstance(settings, ClientConfig):
         env = getattr(settings, "env")  # type: Dict[str, str]
         env.update(env_vscode)
         return
@@ -72,7 +65,7 @@ def _use_vscode_client_info() -> None:
 
     # this method will result in all sessions use the modified clientInfo
     # so this should be only executed once...
-    if hasattr(sessions, "__use_vscode_client_info"):
+    if getattr(sessions, "__use_vscode_client_info", False):
         return
 
     get_initialize_params_original = sessions.get_initialize_params
