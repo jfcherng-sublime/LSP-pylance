@@ -31,7 +31,7 @@ class VsMarketplaceClientHandler(GenericClientHandler):
 
     @classmethod
     def minimum_node_version(cls) -> Optional[SemanticVersion]:
-        return (12, 14, 1) if cls.execute_with_node else None  # the node versino of VSCode 1.15.1
+        return (12, 14, 1) if cls.execute_with_node else None  # the node version of VSCode 1.15.1
 
     @classmethod
     def additional_variables(cls) -> Optional[Dict[str, str]]:
