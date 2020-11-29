@@ -1,3 +1,4 @@
+from .server_vs_marketplace_resource import DOWNLOAD_FROM_MARKETPLACE
 from .server_vs_marketplace_resource import ServerVsMarketplaceResource
 from .vscode_settings import configure_server_settings_like_vscode
 from LSP.plugin import ClientConfig
@@ -16,7 +17,7 @@ class VsMarketplaceClientHandler(GenericClientHandler):
     server_binary_path = ""
     execute_with_node = False
     pretend_vscode = False
-    download_from = "marketplace"  # "marketplace" or "pvsc"
+    download_from = DOWNLOAD_FROM_MARKETPLACE  # "marketplace" or "pvsc"
     resource_dirs = []  # type: List[str]
 
     # internal

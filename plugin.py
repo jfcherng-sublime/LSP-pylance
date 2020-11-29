@@ -6,6 +6,7 @@ from .dev import vscode_python_settings
 from .helpers.plugin_message import status_msg
 from .helpers.utils import unique
 from .helpers.vs_marketplace_lsp_utils import configure_lsp_like_vscode
+from .helpers.vs_marketplace_lsp_utils import DOWNLOAD_FROM_PVSC
 from .helpers.vs_marketplace_lsp_utils import VsMarketplaceClientHandler
 from LSP.plugin import ClientConfig
 from LSP.plugin import DottedDict
@@ -37,7 +38,7 @@ class LspPylancePlugin(VsMarketplaceClientHandler):
     server_binary_path = SERVER_BINARY_PATH
     execute_with_node = True
     pretend_vscode = True
-    download_from = "pvsc"
+    download_from = DOWNLOAD_FROM_PVSC
 
     # resources directories will be copied into the server directory during server installation
     resource_dirs = ["_resources"]

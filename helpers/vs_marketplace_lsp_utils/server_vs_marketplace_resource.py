@@ -19,7 +19,15 @@ import urllib.error
 import urllib.request
 import zipfile
 
-__all__ = ["ServerVsMarketplaceResource"]
+__all__ = [
+    "DOWNLOAD_FROM_MARKETPLACE",
+    "DOWNLOAD_FROM_PVSC",
+    "ServerVsMarketplaceResource",
+]
+
+
+DOWNLOAD_FROM_MARKETPLACE = "marketplace"
+DOWNLOAD_FROM_PVSC = "pvsc"
 
 
 class NodeVersionResolver:
@@ -82,7 +90,7 @@ class ServerVsMarketplaceResource(ServerResourceInterface):
         server_binary_path: str,
         package_storage: str,
         node_version: Optional[str],
-        download_from: str = "marketplace",
+        download_from: str = DOWNLOAD_FROM_MARKETPLACE,
         resource_dirs: List[str] = [],
     ) -> None:
         if not (package_name and extension_uid and extension_version and server_binary_path and package_storage):
@@ -202,7 +210,7 @@ class ServerVsMarketplaceResource(ServerResourceInterface):
         server_binary_path = options["server_binary_path"]  # type: str
         package_storage = options["package_storage"]  # type: str
         minimum_node_version = options["minimum_node_version"]  # type: Optional[SemanticVersion]
-        download_from = options["download_from"] or "marketplace"  # type: str
+        download_from = options["download_from"] or DOWNLOAD_FROM_MARKETPLACE  # type: str
         resource_dirs = options["resource_dirs"] or []  # type: List[str]
 
         if minimum_node_version:
