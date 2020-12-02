@@ -43,22 +43,6 @@ class LspPylancePlugin(VsMarketplaceClientHandler):
     # resources directories will be copied into the server directory during server installation
     resource_dirs = ["_resources"]
 
-    # commands provided by the server (useless at this moment)
-    supported_commands = [
-        "pyright.addoptionalforparam",
-        "pyright.createtypestub",
-        "pyright.organizeimports",
-        "python.addImport",
-        "python.addOptionalForParam",
-        "python.createTypeStub",
-        "python.intellicode.completionItemSelected",
-        "python.intellicode.loadLanguageServerExtension",
-        "python.orderImports",
-        "python.removeUnusedImport",
-    ]
-
-    key_extraPaths = "python.analysis.extraPaths"
-
     def on_settings_changed(self, settings: DottedDict) -> None:
         super().on_settings_changed(settings)
 
