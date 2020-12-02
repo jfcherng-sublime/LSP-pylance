@@ -49,9 +49,8 @@ class LspPylancePlugin(VsMarketplaceClientHandler):
         if self.get_plugin_setting("dev_environment") == "sublime_text":
             # add package dependencies into "python.analysis.extraPaths"
             extraPaths = settings.get("python.analysis.extraPaths") or []  # type: List[str]
-            extraPaths.append("${server_directory_path}/_resources/typings")
             extraPaths.extend(self.find_package_dependency_dirs())
-            extraPaths.append(sublime.installed_packages_path())
+            extraPaths.append("${server_directory_path}/_resources/typings")
             settings.set("python.analysis.extraPaths", list(unique(extraPaths, stable=True)))
 
         if self.get_plugin_setting("developing"):
@@ -113,5 +112,8 @@ class LspPylancePlugin(VsMarketplaceClientHandler):
         packages_path = sublime.packages_path()
         dep_dirs.remove(packages_path)
         dep_dirs.append(packages_path)
+
+        # just for laziness because sometimes I just decompress the package source there
+        dep_dirs.append(sublime.installed_packages_path())
 
         return [path for path in dep_dirs if os.path.isdir(path)]
