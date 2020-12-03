@@ -8,7 +8,7 @@ def unique(it: Iterable[T], stable: bool = False) -> Iterator[T]:
     """
     Generates a collection of unique items from the iterable.
 
-    @param stable If True, returned items are garanteed to be in their original relative ordering.
+    :param      stable:  If True, returned items are garanteed in their original relative order.
     """
 
     from collections import OrderedDict
@@ -17,6 +17,12 @@ def unique(it: Iterable[T], stable: bool = False) -> Iterator[T]:
 
 
 def get_command_name(var: Union[type, str]) -> str:
+    """
+    Gets the command name in Sublime Text.
+
+    :param      var:  The variable
+    """
+
     name = var.__name__ if isinstance(var, type) else str(var)
 
     name = re.sub(r"Command$", "", name)
