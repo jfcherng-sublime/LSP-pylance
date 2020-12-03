@@ -5,5 +5,5 @@ import os
 #     - https://pvsc.blob.core.windows.net/pylance-insiders?restype=container&comp=list
 
 EXTENSION_UID = "pylance-insiders.vscode-pylance"
-EXTENSION_VERSION = "2020.11.3-pre.1"
+EXTENSION_VERSION = "2020.12.1-pre.1"
 SERVER_BINARY_PATH = os.path.join("extension", "dist", "server.bundle.js")
