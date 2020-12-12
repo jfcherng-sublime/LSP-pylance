@@ -1,11 +1,30 @@
-from LSP.plugin.core.typing import Any, Dict
+from LSP.plugin.core.typing import Any, Dict, TypeVar
 import getpass
 import os
+import sublime
 import sys
 
 
+T = TypeVar("T")
+
+
+def expand_variables(val: T) -> T:
+    w = sublime.active_window()
+
+    variables = w.extract_variables()
+    variables.update(
+        {
+            "path": (";" if os.name == "nt" else ":").join(sys.path),
+            "username": getpass.getuser(),
+            "workspaceFolder": (w.folders() or [""])[0],
+        }
+    )
+
+    return sublime.expand_variables(val, variables)  # type: ignore
+
+
 def vscode_python_settings() -> Dict[str, Any]:
-    return {
+    settings = {
         "python": {
             "diagnostics": {"sourceMapsEnabled": False},
             "autoComplete": {
@@ -136,32 +155,34 @@ def vscode_python_settings() -> Dict[str, Any]:
         }
     }
 
+    return expand_variables(settings)
+
 
 def vscode_env() -> Dict[str, str]:
     env = {
         "ALLUSERSPROFILE": "C:\\ProgramData",
         "AMD_ENTRYPOINT": "vs/workbench/services/extensions/node/extensionHostProcess",
-        "APPDATA": "C:\\Users\\{username}\\AppData\\Roaming",
+        "APPDATA": "C:\\Users\\${username}\\AppData\\Roaming",
         "APPLICATION_INSIGHTS_NO_DIAGNOSTIC_CHANNEL": "true",
         "CHROME_CRASHPAD_PIPE_NAME": "\\\\.\\pipe\\crashpad_2976_RZOBQMWJBTFHPXNM",
         "CommonProgramFiles": "C:\\Program Files\\Common Files",
         "CommonProgramFiles(x86)": "C:\\Program Files (x86)\\Common Files",
         "CommonProgramW6432": "C:\\Program Files\\Common Files",
-        "COMPUTERNAME": "{username}-W10-VM",
+        "COMPUTERNAME": "${username}-W10-VM",
         "ComSpec": "C:\\Windows\\system32\\cmd.exe",
         "DriverData": "C:\\Windows\\System32\\Drivers\\DriverData",
         "ELECTRON_RUN_AS_NODE": "1",
         "FPS_BROWSER_APP_PROFILE_STRING": "Internet Explorer",
         "FPS_BROWSER_USER_PROFILE_STRING": "Default",
         "HOMEDRIVE": "C:",
-        "HOMEPATH": "\\Users\\{username}",
-        "LOCALAPPDATA": "C:\\Users\\{username}\\AppData\\Local",
-        "LOGONSERVER": "\\\\{username}-W10-VM",
+        "HOMEPATH": "\\Users\\${username}",
+        "LOCALAPPDATA": "C:\\Users\\${username}\\AppData\\Local",
+        "LOGONSERVER": "\\\\${username}-W10-VM",
         "NUMBER_OF_PROCESSORS": "8",
-        "OneDrive": "C:\\Users\\{username}\\OneDrive",
+        "OneDrive": "C:\\Users\\${username}\\OneDrive",
         "ORIGINAL_XDG_CURRENT_DESKTOP": "undefined",
         "OS": "Windows_NT",
-        "Path": (";" if os.name == "nt" else ":").join(sys.path),
+        "Path": "${path}",
         "PATHEXT": ".COM;.EXE;.BAT;.CMD;.VBS;.VBE;.JS;.JSE;.WSF;.WSH;.MSC",
         "PIPE_LOGGING": "true",
         "PROCESSOR_ARCHITECTURE": "AMD64",
@@ -177,27 +198,23 @@ def vscode_env() -> Dict[str, str]:
         "SESSIONNAME": "Console",
         "SystemDrive": "C:",
         "SystemRoot": "C:\\Windows",
-        "TEMP": "C:\\Users\\{username}\\AppData\\Local\\Temp",
-        "TMP": "C:\\Users\\{username}\\AppData\\Local\\Temp",
-        "USERDOMAIN": "{username}-W10-VM",
-        "USERDOMAIN_ROAMINGPROFILE": "{username}-W10-VM",
-        "USERNAME": "{username}",
-        "USERPROFILE": "C:\\Users\\{username}",
+        "TEMP": "C:\\Users\\${username}\\AppData\\Local\\Temp",
+        "TMP": "C:\\Users\\${username}\\AppData\\Local\\Temp",
+        "USERDOMAIN": "${username}-W10-VM",
+        "USERDOMAIN_ROAMINGPROFILE": "${username}-W10-VM",
+        "USERNAME": "${username}",
+        "USERPROFILE": "C:\\Users\\${username}",
         "VERBOSE_LOGGING": "true",
-        "VSCODE_CWD": "C:\\Users\\{username}\\AppData\\Local\\Programs\\Microsoft VS Code",
+        "VSCODE_CWD": "C:\\Users\\${username}\\AppData\\Local\\Programs\\Microsoft VS Code",
         "VSCODE_HANDLES_UNCAUGHT_ERRORS": "true",
         "VSCODE_IPC_HOOK": "\\\\.\\pipe\\31d9d0edf1994549ea901159b5c46262-1.51.1-main-sock",
         "VSCODE_IPC_HOOK_EXTHOST": "\\\\.\\pipe\\vscode-ipc-2c4b6893-e896-4bd0-ad37-2ea0c8cc231e-sock",
         "VSCODE_LOG_STACK": "false",
-        "VSCODE_LOGS": "C:\\Users\\{username}\\AppData\\Roaming\\Code\\logs\\20201125T142012",
+        "VSCODE_LOGS": "C:\\Users\\${username}\\AppData\\Roaming\\Code\\logs\\20201125T142012",
         "VSCODE_NLS_CONFIG": '{{"locale":"en-us","availableLanguages":{{}},"_languagePackSupport":true}}',
-        "VSCODE_NODE_CACHED_DATA_DIR": "C:\\Users\\{username}\\AppData\\Roaming\\Code\\CachedData\\e5a624b788d92b8d34d1392e4c4d9789406efe8f",
+        "VSCODE_NODE_CACHED_DATA_DIR": "C:\\Users\\${username}\\AppData\\Roaming\\Code\\CachedData\\e5a624b788d92b8d34d1392e4c4d9789406efe8f",
         "VSCODE_PID": "2976",
         "windir": "C:\\Windows",
     }
 
-    variables = {
-        "username": getpass.getuser(),
-    }
-
-    return {k: v.format_map(variables) for k, v in env.items()}
+    return expand_variables(env)
