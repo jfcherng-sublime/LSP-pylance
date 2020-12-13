@@ -25,6 +25,8 @@
 		// Pylance-only //
 		//////////////////
 
+		// Used to control the insiders download channel. (useless in ST)
+		"pylance.insidersChannel": "daily",
 		// Add parentheses to function completions.
 		"python.analysis.completeFunctionParens": false,
 

@@ -29,6 +29,15 @@
                 "settings": {
                   "additionalProperties": false,
                   "properties": {
+                    "pylance.insidersChannel": {
+                      "type": "string",
+                      "default": "off",
+                      "description": "Used to control the insiders download channel. (useless in ST)",
+                      "enum": [
+                        "daily",
+                        "off"
+                      ]
+                    },
                     "python.analysis.completeFunctionParens": {
                       "type": "boolean",
                       "default": false,
