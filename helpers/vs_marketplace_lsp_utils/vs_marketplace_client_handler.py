@@ -1,11 +1,11 @@
 from .server_vs_marketplace_resource import DOWNLOAD_FROM_MARKETPLACE
 from .server_vs_marketplace_resource import ServerVsMarketplaceResource
+from .typing import SemanticVersion
 from .vscode_settings import configure_server_settings_like_vscode
 from LSP.plugin import ClientConfig
 from LSP.plugin.core.typing import Dict, List, Optional
 from lsp_utils import GenericClientHandler
 from lsp_utils import ServerResourceInterface
-from lsp_utils.helpers import SemanticVersion
 
 __all__ = ["VsMarketplaceClientHandler"]
 

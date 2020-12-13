@@ -1,3 +1,4 @@
+from .typing import SemanticVersion
 from .vscode_settings import VSCODE_CLIENTINFO
 from LSP.plugin.core.typing import Dict, List, Optional
 from lsp_utils import ServerResourceInterface
@@ -5,7 +6,6 @@ from lsp_utils import ServerStatus
 from lsp_utils.helpers import log_and_show_message
 from lsp_utils.helpers import parse_version
 from lsp_utils.helpers import run_command_sync
-from lsp_utils.helpers import SemanticVersion
 from lsp_utils.helpers import version_to_string
 from lsp_utils.server_npm_resource import NodeVersionResolver
 from sublime_lib import ResourcePath
